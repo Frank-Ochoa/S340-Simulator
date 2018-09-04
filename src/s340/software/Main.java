@@ -84,16 +84,16 @@ public class Main
 
       // Question 2 Stuff
 
-      /* for(int i = 1; i <= 5; i++)
+       for(int i = 1; i <= 5; i++)
        {
            for(int j = 1; j <= 5; j++)
            {
                System.out.println(i * j);
            }
-       }*/
+       }
 
 
-      int j = 100;
+     /* int j = 100;
       int k = 200;
 
       b1.loadi(1);
@@ -120,7 +120,36 @@ public class Main
 
       b1.load(900);
       b1.output();
-      b1.end();
+      b1.end();*/
+
+     // Question 6
+
+	  int a = 121;
+
+	  b1.loadi(4);
+	  b1.store(a);
+	  b1.loadi(0);
+	  b1.tax();
+	  b1.txa();
+	  b1.subi(20);
+	  b1.jpos(26);
+	  b1.jzero(26);
+	  b1.loadx(a);
+	  b1.addi(1);
+	  b1.incx();
+	  b1.storex(a);
+	  b1.jmp(8);
+	  b1.loadi(0);
+	  b1.tax();
+	  b1.txa();
+	  b1.subi(20);
+	  b1.jpos(46);
+	  b1.jzero(46);
+	  b1.loadx(a);
+	  b1.incx();
+	  b1.output();
+	  b1.jmp(30);
+	  b1.end();
 
 
 		Program p1 = b1.build();
