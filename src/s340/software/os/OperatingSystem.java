@@ -7,6 +7,8 @@ import s340.hardware.ITrapHandler;
 import s340.hardware.Machine;
 import s340.hardware.Trap;
 import s340.hardware.exception.MemoryFault;
+import s340.software.os.ProgramBuilder;
+
 
 /*
  * The operating system that controls the software running on the S340 CPU.
@@ -18,6 +20,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 {
     // the machine on which we are running.
     private final Machine machine;
+	ProcessControlBlock[] process_table;
 
     /*
 	 * Create an operating system on the given machine.
@@ -25,14 +28,20 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
     public OperatingSystem(Machine machine) throws MemoryFault
     {
         this.machine = machine;
+        this.process_table =  new ProcessControlBlock[10];
+        ProgramBuilder pb = new ProgramBuilder();
+       	pb.start(0);
+        pb.jmp(0);
+        pb.end();
+       	loadProgram(pb.build());
     }
 
     /*
 	 * Load a program into a given memory address
      */
-    private int loadProgram(int startAddress, Program program) throws MemoryFault
+    private int loadProgram(Program program) throws MemoryFault
     {
-        int address = startAddress;
+        int address = program.getStart();
         for (int i : program.getCode())
         {
             machine.memory.store(address++, i);
@@ -49,10 +58,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
      */
     public synchronized void schedule(List<Program> programs) throws MemoryFault
     {
-        int address = 0;
         for (Program program : programs)
         {
-            address = loadProgram(address, program);
+            loadProgram(program);
         }
 
         // leave this as the last line
