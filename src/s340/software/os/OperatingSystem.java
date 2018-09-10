@@ -1,5 +1,6 @@
 package s340.software.os;
 
+import java.rmi.AlreadyBoundException;
 import java.util.List;
 import s340.hardware.IInterruptHandler;
 import s340.hardware.ISystemCallHandler;
@@ -7,8 +8,10 @@ import s340.hardware.ITrapHandler;
 import s340.hardware.Machine;
 import s340.hardware.Trap;
 import s340.hardware.exception.MemoryFault;
-import s340.software.os.ProgramBuilder;
 
+import static s340.software.os.ProcessState.END;
+import static s340.software.os.ProcessState.READY;
+import static s340.software.os.ProcessState.RUNNING;
 
 /*
  * The operating system that controls the software running on the S340 CPU.
@@ -21,6 +24,8 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
     // the machine on which we are running.
     private final Machine machine;
 	ProcessControlBlock[] process_table;
+	int runningIndex;
+	int blockIndex;
 
     /*
 	 * Create an operating system on the given machine.
@@ -29,12 +34,32 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
     {
         this.machine = machine;
         this.process_table =  new ProcessControlBlock[10];
+        this.runningIndex = 0;
+        this.blockIndex = 0;
         ProgramBuilder pb = new ProgramBuilder();
        	pb.start(0);
         pb.jmp(0);
         pb.end();
        	loadProgram(pb.build());
-    }
+
+
+	}
+
+    // The scheduler needs to call this?
+    private ProcessControlBlock chooseNextProcess()
+	{
+		// Need to change this, start off at 1?
+		ProcessControlBlock readyBlock = null;
+		for(int i = 0; i < this.process_table.length; i++)
+		{
+			if(this.process_table[i].Status == READY)
+			{
+				readyBlock = this.process_table[i];
+				runningIndex = i;
+			}
+		}
+		return readyBlock;
+	}
 
     /*
 	 * Load a program into a given memory address
@@ -58,9 +83,14 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
      */
     public synchronized void schedule(List<Program> programs) throws MemoryFault
     {
+    	// Have a running index instead possibly
+    	//int index = 0;
         for (Program program : programs)
         {
             loadProgram(program);
+            ProcessControlBlock x = new ProcessControlBlock(0, 0, program.getStart(), READY);
+            this.process_table[blockIndex] = x;
+            blockIndex++;
         }
 
         // leave this as the last line
@@ -86,11 +116,28 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
         }
         //  end of code to leave
 
+		// Timer turns off
+
+		// Save registers to process table
+		int Acc = machine.cpu.acc;
+        int X = machine.cpu.x;
+        int PC = savedProgramCounter;
+        this.process_table[runningIndex] = new ProcessControlBlock(Acc, X, PC, END);
+
+        // Choose Program to run next,restore its registers and jump to it in memory
+		ProcessControlBlock next = chooseNextProcess();
+		machine.cpu.acc = next.Acc;
+		machine.cpu.x = next.X;
+		machine.cpu.setPc(next.PC);
+
+		// Turn timer back on
+
         switch (trapNumber)
         {
             case Trap.TIMER:
                 break;
             case Trap.END:
+            	// chooseNextProcess
                 System.exit(1);
                 break;
             default:

@@ -3,15 +3,20 @@ package s340.software;
 import java.util.List;
 
 import s340.hardware.Machine;
+import s340.software.os.ProcessControlBlock;
 import s340.software.os.Program;
 import s340.software.os.OperatingSystem;
 import s340.software.os.ProgramBuilder;
+
+import static s340.software.os.ProcessState.READY;
 
 /**
  *
  */
 public class Main
 {
+
+
 	public static void main(String[] args) throws Exception
 	{
 		//	setup the hardware, the operating system, and power up
@@ -27,7 +32,7 @@ public class Main
         int SUM = 120;
         int I = 90;
 
-        b1.loadi(0);
+		b1.loadi(0);
         b1.store(SUM);
         b1.loadi(0);
         b1.store(I);
@@ -47,7 +52,7 @@ public class Main
 
       // Question 1 Stuff
 
-      /* int sum = 0;
+       /*int sum = 0;
        for(int i= 0; i <= 100; i++)
        {
            sum += i;
@@ -63,7 +68,7 @@ public class Main
            i2++;
        }
 
-       System.out.println(sum2);
+       System.out.println(sum2);*/
 
        b1.loadi(0);
        b1.store(200);
@@ -80,51 +85,52 @@ public class Main
        b1.jmp(6);
        b1.load(200);
        b1.output();
-       b1.end();*/
+       b1.end();
 
       // Question 2 Stuff
 
-       for(int i = 1; i <= 5; i++)
+       /*for(int i = 1; i <= 5; i++)
        {
            for(int j = 1; j <= 5; j++)
            {
                System.out.println(i * j);
            }
-       }
+       }*/
 
+      ProgramBuilder b2 = new ProgramBuilder();
 
-     /* int j = 100;
+      int j = 100;
       int k = 200;
 
-      b1.loadi(1);
-      b1.store(j);
-      b1.subi(6);
-      b1.jpos(42);
-      b1.jzero(42);
-      b1.loadi(1);
-      b1.store(k);
-      b1.tax();
-      b1.txa();
-      b1.store(k);
-      b1.subi(6);
-      b1.jpos(36);
-      b1.jzero(36);
-      b1.load(j);
-      b1.mul(k);
-      b1.store(900);
-      b1.incx();
-      b1.jmp(16);
-      b1.load(j);
-      b1.addi(1);
-      b1.jmp(2);
+      b2.loadi(1);
+      b2.store(j);
+      b2.subi(6);
+      b2.jpos(42);
+      b2.jzero(42);
+      b2.loadi(1);
+      b2.store(k);
+      b2.tax();
+      b2.txa();
+      b2.store(k);
+      b2.subi(6);
+      b2.jpos(36);
+      b2.jzero(36);
+      b2.load(j);
+      b2.mul(k);
+      b2.output();
+      b2.incx();
+      b2.jmp(16);
+      b2.load(j);
+      b2.addi(1);
+      b2.jmp(2);
 
-      b1.load(900);
-      b1.output();
-      b1.end();*/
+     /* b2.load(900);
+      b2.output();*/
+      b2.end();
 
      // Question 6
 
-	  int a = 121;
+	  /*int a = 121;
 
 	  b1.loadi(4);
 	  b1.store(a);
@@ -149,13 +155,14 @@ public class Main
 	  b1.incx();
 	  b1.output();
 	  b1.jmp(30);
-	  b1.end();
+	  b1.end();*/
 
 
-		Program p1 = b1.build();
-		System.out.println(p1);
-
+		//Program p1 = b1.build();
+		Program p2 = b2.build();
+		//System.out.println(p1);
+		System.out.println(p2);
 		// schedule the program
-		os.schedule(List.of(p1));
+		os.schedule(List.of(p2));
 	}
 }

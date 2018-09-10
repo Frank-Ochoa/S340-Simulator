@@ -11,7 +11,7 @@ public class ProcessControlBlock
 	{
 		Acc = acc;
 		X = x;
-		this.PC = PC;
+		PC = PC;
 		Status = status;
 	}
 
