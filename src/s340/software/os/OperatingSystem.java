@@ -197,24 +197,6 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
         }
         //  end of code to leave
 
-		/*// Timer turns off
-
-		// Save registers to process table
-		int Acc = machine.cpu.acc;
-        int X = machine.cpu.x;
-        int PC = savedProgramCounter;
-        this.process_table[runningIndex].Acc = Acc;
-        this.process_table[runningIndex].X = X;
-        this.process_table[runningIndex].PC = PC;
-
-        // Choose Program to run next,restore its registers and jump to it in memory
-		ProcessControlBlock next = chooseNextProcess();
-		machine.cpu.acc = next.Acc;
-		machine.cpu.x = next.X;
-		machine.cpu.setPc(next.PC);
-
-		// Turn timer back on*/
-
         switch (trapNumber)
         {
         	// Entered the trap handler
