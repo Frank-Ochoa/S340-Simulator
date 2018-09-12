@@ -24,9 +24,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 {
     // the machine on which we are running.
     private final Machine machine;
-	ProcessControlBlock[] process_table;
-	int runningIndex;
-	int blockIndex;
+	private ProcessControlBlock[] process_table;
+	private int runningIndex;
+	private int blockIndex;
 
     /*
 	 * Create an operating system on the given machine.
@@ -41,8 +41,8 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
        	pb.start(0);
         pb.jmp(0);
         pb.end();
-        process_table[0] = new ProcessControlBlock(0, 0, pb.build().getStart(), READY);
-
+        Program b1 = pb.build();
+        process_table[0] = new ProcessControlBlock(0, 0, b1.getStart(), READY);
 
 
 	}
@@ -90,9 +90,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 	{
 		ProcessControlBlock next = this.process_table[0];
 
-		if(runningIndex == this.process_table.length)
+		if(runningIndex == this.process_table.length - 1)
 		{
-			runningIndex = 1;
+			runningIndex = 0;
 		}
 
 		for(int i = runningIndex + 1; i < this.process_table.length; i++)
@@ -103,11 +103,12 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				{
 					next = this.process_table[i];
 					runningIndex = i;
+					return next;
 				}
 			}
 		}
 
-
+		runningIndex = 0;
 		return next;
 	}
 
@@ -141,19 +142,19 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
             loadProgram(program);
             ProcessControlBlock x = new ProcessControlBlock(0, 0, program.getStart(), READY);
 
-            if(blockIndex == this.process_table.length)
+			if(blockIndex == this.process_table.length - 1)
 			{
 				blockIndex = 1;
 			}
 
-            for(int i = blockIndex; i < this.process_table.length; i++)
+			for(int i = blockIndex; i < this.process_table.length; i++)
 			{
 				// Search for an open block, and put the block there, setting the block index to that
 				if(this.process_table[i] == null || this.process_table[i].Status == END)
 				{
 					this.process_table[i] = x;
 					blockIndex = i;
-					runningIndex = i;
+					break;
 				}
 			}
         }
@@ -220,12 +221,13 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
             case Trap.TIMER:
             	saveRegisters(savedProgramCounter);
 				loadRegisters();
-				System.out.println("Choose next");
-            	break;
+				break;
             // Program end
             case Trap.END:
             	saveRegisters(savedProgramCounter);
             	process_table[runningIndex].Status = END;
+            	System.out.println("Program ended");
+			    loadRegisters();
                 break;
             default:
                 System.err.println("UNHANDLED TRAP " + trapNumber);

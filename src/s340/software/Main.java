@@ -72,19 +72,19 @@ public class Main
 
        b1.start(50);
        b1.loadi(0);
-       b1.store(200);
+       b1.store(140);
        b1.tax();
        b1.txa();
-       b1.store(500);
+       b1.store(160);
        b1.subi(101);
-       b1.jpos(76);
-       b1.jzero(76);
-       b1.load(200);
-       b1.add(500);
-       b1.store(200);
+       b1.jpos(80);
+       b1.jzero(80);
+       b1.load(140);
+       b1.add(160);
+       b1.store(140);
        b1.incx();
        b1.jmp(56);
-       b1.load(200);
+       b1.load(140);
        b1.output();
        b1.end();
 
@@ -100,8 +100,8 @@ public class Main
 
       ProgramBuilder b2 = new ProgramBuilder();
 
-      int j = 100;
-      int k = 200;
+      int j = 500;
+      int k = 600;
 
       b2.start(200);
       b2.loadi(1);
@@ -125,9 +125,6 @@ public class Main
       b2.load(j);
       b2.addi(1);
       b2.jmp(202);
-
-     /* b2.load(900);
-      b2.output();*/
       b2.end();
 
      // Question 6
@@ -160,11 +157,18 @@ public class Main
 	  b1.end();*/
 
 
+	  ProgramBuilder b3 = new ProgramBuilder();
+	  b3.start(800);
+	  b3.loadi(10);
+	  b3.output();
+	  b3.end();
+
 		Program p1 = b1.build();
 		Program p2 = b2.build();
+		Program p3 = b3.build();
 		System.out.println(p1);
 		System.out.println(p2);
 		// schedule the program
-		os.schedule(List.of(p1, p2));
+		os.schedule(List.of(p3));
 	}
 }
