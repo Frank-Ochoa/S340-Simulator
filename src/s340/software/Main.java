@@ -70,19 +70,20 @@ public class Main
 
        System.out.println(sum2);*/
 
+       b1.start(50);
        b1.loadi(0);
        b1.store(200);
        b1.tax();
        b1.txa();
        b1.store(500);
        b1.subi(101);
-       b1.jpos(26);
-       b1.jzero(26);
+       b1.jpos(76);
+       b1.jzero(76);
        b1.load(200);
        b1.add(500);
        b1.store(200);
        b1.incx();
-       b1.jmp(6);
+       b1.jmp(56);
        b1.load(200);
        b1.output();
        b1.end();
@@ -102,27 +103,28 @@ public class Main
       int j = 100;
       int k = 200;
 
+      b2.start(200);
       b2.loadi(1);
       b2.store(j);
       b2.subi(6);
-      b2.jpos(42);
-      b2.jzero(42);
+      b2.jpos(242);
+      b2.jzero(242);
       b2.loadi(1);
       b2.store(k);
       b2.tax();
       b2.txa();
       b2.store(k);
       b2.subi(6);
-      b2.jpos(36);
-      b2.jzero(36);
+      b2.jpos(236);
+      b2.jzero(236);
       b2.load(j);
       b2.mul(k);
       b2.output();
       b2.incx();
-      b2.jmp(16);
+      b2.jmp(216);
       b2.load(j);
       b2.addi(1);
-      b2.jmp(2);
+      b2.jmp(202);
 
      /* b2.load(900);
       b2.output();*/
@@ -158,11 +160,11 @@ public class Main
 	  b1.end();*/
 
 
-		//Program p1 = b1.build();
+		Program p1 = b1.build();
 		Program p2 = b2.build();
-		//System.out.println(p1);
+		System.out.println(p1);
 		System.out.println(p2);
 		// schedule the program
-		os.schedule(List.of(p2));
+		os.schedule(List.of(p1, p2));
 	}
 }

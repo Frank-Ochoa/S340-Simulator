@@ -1,6 +1,7 @@
 package s340.software.os;
 
 import java.rmi.AlreadyBoundException;
+import java.util.LinkedList;
 import java.util.List;
 import s340.hardware.IInterruptHandler;
 import s340.hardware.ISystemCallHandler;
@@ -35,30 +36,79 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
         this.machine = machine;
         this.process_table =  new ProcessControlBlock[10];
         this.runningIndex = 0;
-        this.blockIndex = 0;
+        this.blockIndex = 1;
         ProgramBuilder pb = new ProgramBuilder();
        	pb.start(0);
         pb.jmp(0);
         pb.end();
-       	loadProgram(pb.build());
+        process_table[0] = new ProcessControlBlock(0, 0, pb.build().getStart(), READY);
+
 
 
 	}
 
     // The scheduler needs to call this?
+    /*private ProcessControlBlock chooseNextProcess()
+	{	ProcessControlBlock nextProcess = this.process_table[0];
+		int tempRunningIndex = runningIndex + 1;
+		boolean t = false;
+
+
+		do
+		{
+			if(runningIndex == this.process_table.length)
+			{
+				runningIndex = 1;
+			}
+
+			if(tempRunningIndex == runningIndex)
+			{
+				runningIndex = 0;
+				return nextProcess;
+			}
+
+			if(this.process_table[tempRunningIndex] != null)
+			{
+				if(this.process_table[tempRunningIndex].Status == READY)
+				{
+					nextProcess = this.process_table[tempRunningIndex];
+					runningIndex = tempRunningIndex;
+					t = true;
+				}
+			}
+
+			tempRunningIndex++;
+
+
+		}while(t == false);
+
+		return nextProcess;
+	}*/
+
+    // What I did, and seems pretty correct
     private ProcessControlBlock chooseNextProcess()
 	{
-		// Need to change this, start off at 1?
-		ProcessControlBlock readyBlock = null;
-		for(int i = 0; i < this.process_table.length; i++)
+		ProcessControlBlock next = this.process_table[0];
+
+		if(runningIndex == this.process_table.length)
 		{
-			if(this.process_table[i].Status == READY)
+			runningIndex = 1;
+		}
+
+		for(int i = runningIndex + 1; i < this.process_table.length; i++)
+		{
+			if(process_table[i] != null)
 			{
-				readyBlock = this.process_table[i];
-				runningIndex = i;
+				if(process_table[i].Status == READY)
+				{
+					next = this.process_table[i];
+					runningIndex = i;
+				}
 			}
 		}
-		return readyBlock;
+
+
+		return next;
 	}
 
     /*
@@ -83,19 +133,49 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
      */
     public synchronized void schedule(List<Program> programs) throws MemoryFault
     {
-    	// Have a running index instead possibly
+    	// Have a running index instead possibly, so that is a program calls schedule, doesn't overwrite blocks
     	//int index = 0;
+		// searh for an open control block to reuse if needed
         for (Program program : programs)
         {
             loadProgram(program);
             ProcessControlBlock x = new ProcessControlBlock(0, 0, program.getStart(), READY);
-            this.process_table[blockIndex] = x;
-            blockIndex++;
+
+            if(blockIndex == this.process_table.length)
+			{
+				blockIndex = 1;
+			}
+
+            for(int i = blockIndex; i < this.process_table.length; i++)
+			{
+				// Search for an open block, and put the block there, setting the block index to that
+				if(this.process_table[i] == null || this.process_table[i].Status == END)
+				{
+					this.process_table[i] = x;
+					blockIndex = i;
+					runningIndex = i;
+				}
+			}
         }
 
         // leave this as the last line
         machine.cpu.runProg = true;
     }
+
+    private void saveRegisters(int PC)
+	{
+		process_table[runningIndex].Acc = machine.cpu.acc;
+		process_table[runningIndex].X = machine.cpu.x;
+		process_table[runningIndex].PC = PC;
+	}
+
+	private void loadRegisters()
+	{
+		ProcessControlBlock next = chooseNextProcess();
+		machine.cpu.acc = next.Acc;
+		machine.cpu.x = next.X;
+		machine.cpu.setPc(next.PC);
+	}
 
     /*
     * Handle a trap from the hardware.
@@ -116,13 +196,15 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
         }
         //  end of code to leave
 
-		// Timer turns off
+		/*// Timer turns off
 
 		// Save registers to process table
 		int Acc = machine.cpu.acc;
         int X = machine.cpu.x;
         int PC = savedProgramCounter;
-        this.process_table[runningIndex] = new ProcessControlBlock(Acc, X, PC, END);
+        this.process_table[runningIndex].Acc = Acc;
+        this.process_table[runningIndex].X = X;
+        this.process_table[runningIndex].PC = PC;
 
         // Choose Program to run next,restore its registers and jump to it in memory
 		ProcessControlBlock next = chooseNextProcess();
@@ -130,15 +212,20 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		machine.cpu.x = next.X;
 		machine.cpu.setPc(next.PC);
 
-		// Turn timer back on
+		// Turn timer back on*/
 
         switch (trapNumber)
         {
+        	// Entered the trap handler
             case Trap.TIMER:
-                break;
+            	saveRegisters(savedProgramCounter);
+				loadRegisters();
+				System.out.println("Choose next");
+            	break;
+            // Program end
             case Trap.END:
-            	// chooseNextProcess
-                System.exit(1);
+            	saveRegisters(savedProgramCounter);
+            	process_table[runningIndex].Status = END;
                 break;
             default:
                 System.err.println("UNHANDLED TRAP " + trapNumber);
