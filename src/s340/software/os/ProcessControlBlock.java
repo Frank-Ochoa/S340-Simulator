@@ -9,11 +9,10 @@ public class ProcessControlBlock
 
 	public ProcessControlBlock(int acc, int x, int PC, ProcessState status)
 	{
-		Acc = acc;
-		X = x;
-		PC = PC;
-		Status = status;
+		this.Acc = acc;
+		this.X = x;
+		this.PC = PC;
+		this.Status = status;
 	}
-
 
 }
