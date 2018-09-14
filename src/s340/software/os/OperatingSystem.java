@@ -27,7 +27,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 	public OperatingSystem(Machine machine) throws MemoryFault
 	{
 		this.machine = machine;
+		// Initialize an array of process control blocks with the size of 10
 		this.process_table = new ProcessControlBlock[10];
+		// Initialize the running index to 0
 		this.runningIndex = 0;
 		// Create a wait process that continually jumps to itself
 		ProgramBuilder pb = new ProgramBuilder();
@@ -58,8 +60,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		}
 
 		// If no process was found with the READY status in the previous loop, loop through the process table once again
-		// starting at 1 till you reach the runningIndex, searching for a process with the status of READY, if one is found
-		// set the runningIndex = to that index in the loop, and return said block
+		// starting at position 1 till you reach the current runningIndex, searching for a process control block
+		// with the status of READY, if one is found, set the runningIndex = to that index in the loop,
+		// and return said block
 		for (int i = 1; i <= runningIndex; i++)
 		{
 			if (process_table[i] != null)
@@ -72,8 +75,8 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			}
 		}
 
-		// No process control block exists with the status of READY, thus set the runningIndex to 0, the index of the
-		// wait process, and return said wait process
+		// No process control block exists in the process table with the status of READY,
+		// thus set the runningIndex to 0, the index of the wait process, and return said wait process
 		runningIndex = 0;
 		return process_table[0];
 	}
@@ -83,6 +86,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 	 */
 	private int loadProgram(Program program) throws MemoryFault
 	{
+		// Address = the start address of passed in program
 		int address = program.getStart();
 		for (int i : program.getCode())
 		{
@@ -106,8 +110,8 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			loadProgram(program);
 			ProcessControlBlock x = new ProcessControlBlock(0, 0, program.getStart(), READY);
 
-			// Loop through the list looking for either a null block or block with the status of END, if one is
-			// found, store the previously created process control block at that index
+			// Loop through the process control table looking for either a null block or block with the status of END, if one is
+			// found, store the previously created process control block in the process table at that index
 			for (int i = 0; i < this.process_table.length; i++)
 			{
 				if (this.process_table[i] == null || this.process_table[i].Status == END)
@@ -162,7 +166,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		switch (trapNumber)
 		{
 			case Trap.TIMER:
-				// Set current running process back READY status, since its not over
+				// Set current running process back READY status, since its not yet over
 				process_table[runningIndex].Status = READY;
 				break;
 			// Program end, set the status of that process control block to end
@@ -175,7 +179,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				System.exit(1);
 		}
 
-		// Choose another process
+		// Choose the next process to be run
 		ProcessControlBlock next = chooseNextProcess();
 		// Set the status of that process control block to RUNNING
 		next.Status = RUNNING;

@@ -138,8 +138,13 @@ public class Main
 		// schedule the program
 		os.schedule(List.of(p1, p2, p3, p4));
 
-		// Output numbers are explained as p2 gets run, then p4 gets selected and ran, so on and so forth, outputting
-		// as their code is executed
-		// p1 and p3 outputs are given last, as their code is completed last after tap handling.
+		// Output numbers are explained as such: A program is selected and ran, after 4 lines of code are ran of said
+		// program, the trap handler is entered and another program is selected to be ran. So on and so forth.
+
+		// In this specific case, the output can be explained as such: p1 is selected and its output has not been ran yet,
+		// trap is entered, p2 is selected and its output is ran, trap is entered, p3 is selected and is output has
+		// not been ran yet, trap is entered, p4 is selected to be ran and its output is ran. On and on, until finally
+		// p2 and p4 instructions have been completed, then p1 instructions are completed and its output is ran,
+		// and finally p4 instructions have been completed and its output ran
 	}
 }
