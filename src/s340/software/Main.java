@@ -127,37 +127,6 @@ public class Main
 		b4.jmp(802);
 		b4.end();
 
-		// Question 6
-
-	  /*int a = 121;
-
-	  b1.loadi(4);
-	  b1.store(a);
-	  b1.loadi(0);
-	  b1.tax();
-	  b1.txa();
-	  b1.subi(20);
-	  b1.jpos(26);
-	  b1.jzero(26);
-	  b1.loadx(a);
-	  b1.addi(1);
-	  b1.incx();
-	  b1.storex(a);
-	  b1.jmp(8);
-	  b1.loadi(0);
-	  b1.tax();
-	  b1.txa();
-	  b1.subi(20);
-	  b1.jpos(46);
-	  b1.jzero(46);
-	  b1.loadx(a);
-	  b1.incx();
-	  b1.output();
-	  b1.jmp(30);
-	  b1.end();*/
-
-
-
 		Program p1 = b1.build();
 		Program p2 = b2.build();
 		Program p3 = b3.build();

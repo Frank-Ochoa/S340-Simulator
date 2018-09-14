@@ -40,7 +40,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 	private ProcessControlBlock chooseNextProcess()
 	{
-
+		// Loop through the process table
 		for (int i = runningIndex + 1; i < this.process_table.length; i++)
 		{
 			if (process_table[i] != null)
@@ -53,6 +53,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			}
 		}
 
+		// Loop from beginning of process table to running index
 		for (int i = 1; i <= runningIndex; i++)
 		{
 			if (process_table[i] != null)
