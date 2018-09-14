@@ -29,18 +29,22 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		this.machine = machine;
 		this.process_table = new ProcessControlBlock[10];
 		this.runningIndex = 0;
+		// Create a wait process that continually jumps to itself
 		ProgramBuilder pb = new ProgramBuilder();
 		pb.start(0);
 		pb.jmp(0);
 		Program b1 = pb.build();
 		List<Program> x = new LinkedList<>();
 		x.add(b1);
+		// Load it into memory and store it into the process control table
 		schedule(x);
 	}
 
 	private ProcessControlBlock chooseNextProcess()
 	{
-		// Loop through the process table
+		// Loop through the process table starting at runningIndex + 1, searching for a process control block
+		// with the status of READY. If one is found, set the runningIndex = to that index in the loop, and
+		// return said block
 		for (int i = runningIndex + 1; i < this.process_table.length; i++)
 		{
 			if (process_table[i] != null)
@@ -53,7 +57,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			}
 		}
 
-		// Loop from beginning of process table to running index
+		// If no process was found with the READY status in the previous loop, loop through the process table once again
+		// starting at 1 till you reach the runningIndex, searching for a process with the status of READY, if one is found
+		// set the runningIndex = to that index in the loop, and return said block
 		for (int i = 1; i <= runningIndex; i++)
 		{
 			if (process_table[i] != null)
@@ -66,6 +72,8 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			}
 		}
 
+		// No process control block exists with the status of READY, thus set the runningIndex to 0, the index of the
+		// wait process, and return said wait process
 		runningIndex = 0;
 		return process_table[0];
 	}
@@ -92,14 +100,16 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 	 */
 	public synchronized void schedule(List<Program> programs) throws MemoryFault
 	{
+		// For each program in the passed in list, load it into memory, and create a process control block for it
 		for (Program program : programs)
 		{
 			loadProgram(program);
 			ProcessControlBlock x = new ProcessControlBlock(0, 0, program.getStart(), READY);
 
+			// Loop through the list looking for either a null block or block with the status of END, if one is
+			// found, store the previously created process control block at that index
 			for (int i = 0; i < this.process_table.length; i++)
 			{
-				// Search for an open block, and put the block there, setting the block index to that
 				if (this.process_table[i] == null || this.process_table[i].Status == END)
 				{
 					this.process_table[i] = x;
@@ -112,6 +122,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		machine.cpu.runProg = true;
 	}
 
+	// Save the registers into the correct, corresponding process control block
 	private void saveRegisters(int PC)
 	{
 		process_table[runningIndex].Acc = machine.cpu.acc;
@@ -119,6 +130,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		process_table[runningIndex].PC = PC;
 	}
 
+	// Restore the registers of the passed in process control block
 	private void loadRegisters(ProcessControlBlock next)
 	{
 		machine.cpu.acc = next.Acc;
@@ -144,27 +156,30 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		}
 		//  end of code to leave
 
+		// Entered the trap handler, save registers of current program
 		saveRegisters(savedProgramCounter);
 
 		switch (trapNumber)
 		{
-			// Entered the trap handler
 			case Trap.TIMER:
+				// Set current running process back READY status, since its not over
 				process_table[runningIndex].Status = READY;
 				break;
-			// Program end
+			// Program end, set the status of that process control block to end
 			case Trap.END:
 			case Trap.DIV_ZERO:
 				process_table[runningIndex].Status = END;
-				System.out.println("Program ended");
 				break;
 			default:
 				System.err.println("UNHANDLED TRAP " + trapNumber);
 				System.exit(1);
 		}
 
+		// Choose another process
 		ProcessControlBlock next = chooseNextProcess();
+		// Set the status of that process control block to RUNNING
 		next.Status = RUNNING;
+		// Restore registers for that process control block and jump to it
 		loadRegisters(next);
 	}
 

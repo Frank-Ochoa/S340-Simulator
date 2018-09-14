@@ -137,5 +137,9 @@ public class Main
 		System.out.println(p4);
 		// schedule the program
 		os.schedule(List.of(p1, p2, p3, p4));
+
+		// Output numbers are explained as p2 gets run, then p4 gets selected and ran, so on and so forth, outputting
+		// as their code is executed
+		// p1 and p3 outputs are given last, as their code is completed last after tap handling.
 	}
 }
