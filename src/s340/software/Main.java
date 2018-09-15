@@ -22,6 +22,8 @@ public class Main
 		machine.powerUp(os);
 
 		// create a program
+
+		// Sum of first 100 integers
 		ProgramBuilder b1 = new ProgramBuilder();
 		int sum = 140;
 		int i = 160;
@@ -44,8 +46,8 @@ public class Main
 		b1.output();
 		b1.end();
 
+		// Compute and print j * k for each j and k between 1 and 5
 		ProgramBuilder b2 = new ProgramBuilder();
-
 		int j = 500;
 		int k = 600;
 
@@ -73,6 +75,7 @@ public class Main
 		b2.jmp(202);
 		b2.end();
 
+		// Sum of the squares of the first 100 integers
 		ProgramBuilder b3 = new ProgramBuilder();
 		int sum2 = 170;
 		int i2 = 180;
@@ -86,10 +89,8 @@ public class Main
 		b3.subi(101);
 		b3.jpos(328);
 		b3.jzero(328);
-		// 170 is the sum
 		b3.load(i2);
 		b3.mul(i2);
-		// Add the square of 160
 		b3.add(sum2);
 		b3.store(sum2);
 		b3.incx();
@@ -98,8 +99,8 @@ public class Main
 		b3.output();
 		b3.end();
 
+		// Compute and print j * k for each j and k between 31 and 35
 		ProgramBuilder b4 = new ProgramBuilder();
-
 		int j2 = 550;
 		int k2 = 650;
 
@@ -145,6 +146,7 @@ public class Main
 		// trap is entered, p2 is selected and its output is ran, trap is entered, p3 is selected and is output has
 		// not been ran yet, trap is entered, p4 is selected to be ran and its output is ran. On and on, until finally
 		// p2 and p4 instructions have been completed, then p1 instructions are completed and its output is ran,
-		// and finally p4 instructions have been completed and its output ran
+		// and finally p4 instructions have been completed and its output ran. Afterwards the wait process is continually ran
+		// as no more programs with READY status exist in the process table.
 	}
 }
