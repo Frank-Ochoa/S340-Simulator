@@ -8,7 +8,7 @@ import s340.software.os.ProgramBuilder;
 import java.util.List;
 
 /**
- *
+ * Project 1 by : Frank Ochoa, Aidan Chisum, Alec Bennett
  */
 public class Main
 {
