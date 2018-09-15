@@ -169,7 +169,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				// Set current running process back READY status, since its not yet over
 				process_table[runningIndex].Status = READY;
 				break;
-			// Program end, set the status of that process control block to end
+			// Program end, or did division by 0, set the status of that process control block to end
 			case Trap.END:
 			case Trap.DIV_ZERO:
 				process_table[runningIndex].Status = END;
