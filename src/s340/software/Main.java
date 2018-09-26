@@ -1,10 +1,12 @@
 package s340.software;
 
 import s340.hardware.Machine;
+import s340.hardware.MemoryController;
 import s340.software.os.OperatingSystem;
 import s340.software.os.Program;
 import s340.software.os.ProgramBuilder;
 
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -128,7 +130,7 @@ public class Main
 		b4.jmp(802);
 		b4.end();
 
-		Program p1 = b1.build();
+		/*Program p1 = b1.build();
 		Program p2 = b2.build();
 		Program p3 = b3.build();
 		Program p4 = b4.build();
@@ -136,8 +138,8 @@ public class Main
 		System.out.println(p2);
 		System.out.println(p3);
 		System.out.println(p4);
-		// schedule the program
-		os.schedule(List.of(p1, p2, p3, p4));
+		// schedule the program*/
+		//os.schedule(List.of(p1, p2, p3, p4));
 
 		// Output numbers are explained as such: A program is selected and ran, after 4 lines of code are ran of said
 		// program, the trap handler is entered and another program is selected to be ran. So on and so forth.
@@ -148,5 +150,37 @@ public class Main
 		// p2 and p4 instructions have been completed, then p1 instructions are completed and its output is ran,
 		// and finally p4 instructions have been completed and its output ran. Afterwards the wait process is continually ran
 		// as no more programs with READY status exist in the process table.
+
+		/* Project 2 */
+		List<Program> toBeRan = new LinkedList<>();
+
+		for(int p = 1; p <= 5; p++)
+		{
+			ProgramBuilder px = new ProgramBuilder();
+			px.size(10);
+			px.loadi(p);
+			px.tax();
+			px.txa();
+			px.subi(p + 10);
+			px.jzero(22);
+			px.loadi(p);
+			px.storex(28 - p);
+			px.add(38);
+			px.store(38);
+			px.incx();
+			px.jmp(4);
+			px.load(38);
+			px.output();
+			px.end();
+
+			Program px1 = px.build();
+			//System.out.println(px1);
+
+			toBeRan.add(px1);
+		}
+
+		os.schedule(toBeRan);
+
 	}
+
 }

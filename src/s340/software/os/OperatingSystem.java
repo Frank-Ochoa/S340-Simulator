@@ -3,6 +3,7 @@ package s340.software.os;
 import s340.hardware.*;
 import s340.hardware.exception.MemoryFault;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -20,6 +21,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 	private final Machine machine;
 	private ProcessControlBlock[] process_table;
 	private int runningIndex;
+	private List<FreeSpace> freeSpaces;
 
 	/*
 	 * Create an operating system on the given machine.
@@ -31,15 +33,20 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		this.process_table = new ProcessControlBlock[10];
 		// Initialize the running index to 0
 		this.runningIndex = 0;
+		// Initial free space is entire block of memory until a process is loaded in
+		this.freeSpaces = new ArrayList<>();
+		freeSpaces.add(new FreeSpace(0, Machine.MEMORY_SIZE));
+
 		// Create a wait process that continually jumps to itself
 		ProgramBuilder pb = new ProgramBuilder();
-		pb.start(0);
+		pb.size(0);
 		pb.jmp(0);
 		Program b1 = pb.build();
 		List<Program> x = new LinkedList<>();
 		x.add(b1);
 		// Load it into memory and store it into the process control table
 		schedule(x);
+
 	}
 
 	private ProcessControlBlock chooseNextProcess()
@@ -84,13 +91,15 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 	/*
 	 * Load a program into a given memory address
 	 */
-	private int loadProgram(Program program) throws MemoryFault
+	// Still want this to load the programs
+	private int loadProgram(Program program, int index) throws MemoryFault
 	{
 		// Address = the start address of passed in program
-		int address = program.getStart();
+		// Load at free space start
+		int address = 0;
 		for (int i : program.getCode())
 		{
-			machine.memory.store(address++, i);
+			machine.memory.store(freeSpaces.get(index).getSTART() + address++, i);
 		}
 
 		return address;
@@ -107,8 +116,17 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		// For each program in the passed in list, load it into memory, and create a process control block for it
 		for (Program program : programs)
 		{
-			loadProgram(program);
-			ProcessControlBlock x = new ProcessControlBlock(0, 0, program.getStart(), READY);
+			int instructionSize = program.getCode().length;
+			int largestVirtualAddress = instructionSize + program.getDataSize();
+			int iFS = allocateFreeSpace(largestVirtualAddress);
+
+			loadProgram(program, iFS);
+			ProcessControlBlock x = new ProcessControlBlock(0, 0, 0, READY, freeSpaces.get(iFS).getSTART(),
+					largestVirtualAddress + 1);
+
+			System.out.println("Program BASE is = " + freeSpaces.get(0).getSTART());
+			System.out.println("Program LIMIT is = " + (x.LIMIT));
+			System.out.println("--------------------------------");
 
 			// Loop through the process control table looking for either a null block or block with the status of END, if one is
 			// found, store the previously created process control block in the process table at that index
@@ -120,6 +138,15 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 					break;
 				}
 			}
+
+			/*for(int i = 0; i < this.process_table.length; i++)
+			{
+				System.out.println(this.process_table[i]);
+			}*/
+
+			// 0 - limit now no longer free
+			freeSpaces.get(iFS).setSTART(x.BASE + x.LIMIT);
+			freeSpaces.get(iFS).setLENGTH(x.LIMIT);
 		}
 
 		// leave this as the last line
@@ -139,6 +166,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 	{
 		machine.cpu.acc = next.Acc;
 		machine.cpu.x = next.X;
+		// Added BASE and LIMIT registers
+		machine.memory.setBase(next.BASE);
+		machine.memory.setLimit(next.LIMIT);
 		machine.cpu.setPc(next.PC);
 	}
 
@@ -161,6 +191,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		//  end of code to leave
 
 		// Entered the trap handler, save registers of current program
+		//System.out.println("Base in trap = " + machine.memory.getBase() + " with " + runningIndex + " runningIndex");
 		saveRegisters(savedProgramCounter);
 
 		switch (trapNumber)
@@ -208,6 +239,18 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		}
 		//  end of code to leave
 
+		saveRegisters(savedProgramCounter);
+
+		switch(callNumber)
+		{
+			case SystemCall.REQUEST_MORE_MEMORY:
+				// Load into ACC how much more memory program is requesting and pass to sbrk() method
+				sbrk(machine.cpu.acc);
+				break;
+			default:
+				System.err.println("UNHANDLED SYSCALL " + callNumber);
+				System.exit(1);
+		}
 	}
 
 	/*
@@ -227,6 +270,53 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			return;
 		}
 		//  end of code to leave
+	}
+
+	// Project 2 scratch work
+
+	private int allocateFreeSpace(int size)
+	{
+		for (int i = 0; i < this.freeSpaces.size(); i++)
+		{
+			if (this.freeSpaces.get(i).getLENGTH() >= size)
+			{
+				// Set Limit in memory to highest limit of free space. Length + its Starting position
+				machine.memory.setLimit(Machine.MEMORY_SIZE);
+			return i;
+		}
+		}
+		System.exit(1);
+		return -1;
+	}
+
+	private void sbrk(int wantedSpace)
+	{
+		// So far just the index of a space that is >= to wantedSpace, and will end program if one is not found
+		// so will need to change/rethink this later
+		int iFS = allocateFreeSpace(wantedSpace);
+		ProcessControlBlock process = this.process_table[runningIndex];
+		FreeSpace freeSP = this.freeSpaces.get(iFS);
+
+		// If the process' physical limit == the space's start and the length is fine, expand in place
+		if((process.LIMIT + process.BASE) == freeSP.getSTART())
+		{
+			// Set process limit to + the wantedSpace
+			process.LIMIT = process.LIMIT + wantedSpace;
+			// Set the start of that free space to - wantedSpace of what it was, change length of freeSP
+			freeSP.setSTART(freeSP.getSTART() + wantedSpace);
+		}
+		// Move the program
+		else
+		{
+			// Change process base to be the start of the free space to load there
+			process.BASE = freeSP.getSTART();
+			// Change the process limit to free space start + previous limit + wantedSpace
+			process.LIMIT = process.LIMIT + wantedSpace;
+			//
+			freeSP.setSTART(freeSP.getSTART() + wantedSpace);
+
+		}
+
 
 	}
 }

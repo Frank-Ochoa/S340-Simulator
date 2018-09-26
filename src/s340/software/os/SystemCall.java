@@ -5,5 +5,8 @@ package s340.software.os;
  */
 public interface SystemCall
 {
-	public final static int NUM_SYSTEM_CALLS = 0;
+	public final static int NUM_SYSTEM_CALLS = 1;
+	public final static int REQUEST_MORE_MEMORY = 0;
+
+
 }
