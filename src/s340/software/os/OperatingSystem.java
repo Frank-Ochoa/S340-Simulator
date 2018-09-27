@@ -291,7 +291,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		return -1;
 	}
 
-	private void sbrk(int wantedSpace) throws MemoryFault
+	@SuppressWarnings("Duplicates") private void sbrk(int wantedSpace) throws MemoryFault
 	{
 		ProcessControlBlock process = this.process_table[runningIndex];
 
@@ -336,12 +336,15 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				// Maybe refactor in a method to do this
 				freeSpaces.get(i).setSTART(freeSpaces.get(i).getSTART() + wantedSpace);
 				freeSpaces.get(i).setLENGTH(wantedSpace);
+
 				if (freeSpaces.get(i).getLENGTH() == 0)
 				{
 					freeSpaces.remove(i);
 				}
 
 				freeSpaces.add(new FreeSpace(process.BASE, process.LIMIT));
+
+				process.LIMIT = process.LIMIT + wantedSpace;
 				process.BASE = freeSpaces.get(i).getSTART();
 
 				// sbrk worked, load 0 into the accumulator
@@ -350,7 +353,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			}
 		}
 
-		// Else scan list of free spaces looking for adjacent free and merging them together, then load there
+		// Else scan list of free spaces looking for adjacent free and merging them together
 		for (int i = 0; i < this.freeSpaces.size(); i++)
 		{
 			if (freeSpaces.get(i + 1) != null)
@@ -369,13 +372,21 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 					process.LIMIT = process.LIMIT + wantedSpace;
 					freeSpaces.get(i).setSTART(freeSpaces.get(i).getSTART() + wantedSpace);
 					freeSpaces.get(i).setLENGTH(wantedSpace);
+
 					if (freeSpaces.get(i).getLENGTH() == 0)
 					{
 						freeSpaces.remove(i);
 					}
+
+					// sbrk worked load 0 into the accumulator
+					process.Acc = 0;
+					break;
 				}
 			}
 		}
+
+		// Else perform memory compaction
+
 	}
 }
 
