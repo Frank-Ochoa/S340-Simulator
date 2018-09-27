@@ -62,7 +62,7 @@ public class MemoryController
 	{
 		/*System.out.println("Virtual address = " + address);
 		System.out.println("Base in method = " + base);*/
-		checkAddress( address);
+		checkAddress(address);
 		memory[base + address] = value;
 	}
 

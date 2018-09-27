@@ -229,7 +229,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 	 * @param address -- the memory address of any parameters for the system
 	 * call.
 	 */
-	@Override public synchronized void syscall(int savedProgramCounter, int callNumber)
+	@Override public synchronized void syscall(int savedProgramCounter, int callNumber) throws MemoryFault
 	{
 		//  leave this code here
 		CheckValid.syscallNumber(callNumber);
@@ -241,7 +241,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 		saveRegisters(savedProgramCounter);
 
-		switch(callNumber)
+		switch (callNumber)
 		{
 			case SystemCall.REQUEST_MORE_MEMORY:
 				// Load into ACC how much more memory program is requesting and pass to sbrk() method
@@ -276,47 +276,93 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 	private int allocateFreeSpace(int size)
 	{
+		// Scan list of free spaces looking for 1st big enough space for program size, return its index if found
 		for (int i = 0; i < this.freeSpaces.size(); i++)
 		{
 			if (this.freeSpaces.get(i).getLENGTH() >= size)
 			{
 				// Set Limit in memory to highest limit of free space. Length + its Starting position
 				machine.memory.setLimit(Machine.MEMORY_SIZE);
-			return i;
+				return i;
+			}
 		}
+		// Else scan list of free spaces looking for adjacent free and merging them together
+		for (int i = 0; i < this.freeSpaces.size(); i++)
+		{
+			// if ith free space end == start of ith + 1 free space, merge them
+			if ((this.freeSpaces.get(i).getLENGTH() + this.freeSpaces.get(i).getSTART()) == (this.freeSpaces.get(i + 1)
+					.getSTART()))
+				;
+			{
+				// Length of free space is ith + ith +1, then delete ith + 1  from the lsit
+				this.freeSpaces.get(i)
+						.setLENGTH(this.freeSpaces.get(i).getLENGTH() + this.freeSpaces.get(i + 1).getLENGTH());
+				this.freeSpaces.remove(i + 1);
+			}
 		}
+
+		// Then recall allocateFreeSpace so that it goes through the 1st loop again, or go through 1st looping again
+
 		System.exit(1);
 		return -1;
 	}
 
-	private void sbrk(int wantedSpace)
+	private void sbrk(int wantedSpace) throws MemoryFault
 	{
-		// So far just the index of a space that is >= to wantedSpace, and will end program if one is not found
-		// so will need to change/rethink this later
-		int iFS = allocateFreeSpace(wantedSpace);
 		ProcessControlBlock process = this.process_table[runningIndex];
-		FreeSpace freeSP = this.freeSpaces.get(iFS);
 
-		// If the process' physical limit == the space's start and the length is fine, expand in place
-		if((process.LIMIT + process.BASE) == freeSP.getSTART())
+		// Expand in place
+		for (int i = 0; i < this.freeSpaces.size(); i++)
 		{
-			// Set process limit to + the wantedSpace
-			process.LIMIT = process.LIMIT + wantedSpace;
-			// Set the start of that free space to - wantedSpace of what it was, change length of freeSP
-			freeSP.setSTART(freeSP.getSTART() + wantedSpace);
+			if ((process.LIMIT + process.BASE) == freeSpaces.get(i).getSTART())
+			{
+				if (freeSpaces.get(i).getLENGTH() >= wantedSpace)
+				{
+					process.LIMIT = process.LIMIT + wantedSpace;
+					freeSpaces.get(i).setSTART(freeSpaces.get(i).getSTART() + wantedSpace);
+					freeSpaces.get(i).setLENGTH(wantedSpace);
+				}
+				if (freeSpaces.get(i).getLENGTH() == 0)
+				{
+					freeSpaces.remove(i);
+				}
+
+				// sbrk worked load 0 into the accumulator
+				process.Acc = 0;
+				break;
+			}
 		}
+
 		// Move the program
-		else
+		int address = 0;
+		for(int i = 0; i < freeSpaces.size(); i++)
 		{
-			// Change process base to be the start of the free space to load there
-			process.BASE = freeSP.getSTART();
-			// Change the process limit to free space start + previous limit + wantedSpace
-			process.LIMIT = process.LIMIT + wantedSpace;
-			//
-			freeSP.setSTART(freeSP.getSTART() + wantedSpace);
+			if(freeSpaces.get(i).getLENGTH() >= wantedSpace + process.LIMIT)
+			{
+				for(int b = process.BASE; b < (process.LIMIT + process.BASE); b++)
+				{
+					// Load instructions of start of program
+					int insnt = machine.memory.load(b);
+					// Store at free space
+					machine.memory.store(freeSpaces.get(i).getSTART() + address++, insnt);
+				}
 
+				// Maybe refactor in a method to do this
+				freeSpaces.get(i).setSTART(freeSpaces.get(i).getSTART() + wantedSpace);
+				freeSpaces.get(i).setLENGTH(wantedSpace);
+				if (freeSpaces.get(i).getLENGTH() == 0)
+				{
+					freeSpaces.remove(i);
+				}
+
+				freeSpaces.add(new FreeSpace(process.BASE, process.LIMIT));
+				process.BASE = freeSpaces.get(i).getSTART();
+
+				// sbrk worked, load 0 into the accumulator
+				process.Acc = 0;
+				break;
+			}
 		}
-
-
 	}
 }
+
