@@ -286,22 +286,6 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				return i;
 			}
 		}
-		// Else scan list of free spaces looking for adjacent free and merging them together
-		for (int i = 0; i < this.freeSpaces.size(); i++)
-		{
-			// if ith free space end == start of ith + 1 free space, merge them
-			if ((this.freeSpaces.get(i).getLENGTH() + this.freeSpaces.get(i).getSTART()) == (this.freeSpaces.get(i + 1)
-					.getSTART()))
-				;
-			{
-				// Length of free space is ith + ith +1, then delete ith + 1  from the lsit
-				this.freeSpaces.get(i)
-						.setLENGTH(this.freeSpaces.get(i).getLENGTH() + this.freeSpaces.get(i + 1).getLENGTH());
-				this.freeSpaces.remove(i + 1);
-			}
-		}
-
-		// Then recall allocateFreeSpace so that it goes through the 1st loop again, or go through 1st looping again
 
 		System.exit(1);
 		return -1;
@@ -321,25 +305,27 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 					process.LIMIT = process.LIMIT + wantedSpace;
 					freeSpaces.get(i).setSTART(freeSpaces.get(i).getSTART() + wantedSpace);
 					freeSpaces.get(i).setLENGTH(wantedSpace);
-				}
-				if (freeSpaces.get(i).getLENGTH() == 0)
-				{
-					freeSpaces.remove(i);
+
+					if (freeSpaces.get(i).getLENGTH() == 0)
+					{
+						freeSpaces.remove(i);
+					}
+
+					// sbrk worked load 0 into the accumulator
+					process.Acc = 0;
+					break;
 				}
 
-				// sbrk worked load 0 into the accumulator
-				process.Acc = 0;
-				break;
 			}
 		}
 
 		// Move the program
 		int address = 0;
-		for(int i = 0; i < freeSpaces.size(); i++)
+		for (int i = 0; i < freeSpaces.size(); i++)
 		{
-			if(freeSpaces.get(i).getLENGTH() >= wantedSpace + process.LIMIT)
+			if (freeSpaces.get(i).getLENGTH() >= wantedSpace + process.LIMIT)
 			{
-				for(int b = process.BASE; b < (process.LIMIT + process.BASE); b++)
+				for (int b = process.BASE; b < (process.LIMIT + process.BASE); b++)
 				{
 					// Load instructions of start of program
 					int insnt = machine.memory.load(b);
@@ -361,6 +347,33 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				// sbrk worked, load 0 into the accumulator
 				process.Acc = 0;
 				break;
+			}
+		}
+
+		// Else scan list of free spaces looking for adjacent free and merging them together, then load there
+		for (int i = 0; i < this.freeSpaces.size(); i++)
+		{
+			if (freeSpaces.get(i + 1) != null)
+			{
+				// if ith free space end == start of ith + 1 free space, merge them
+				if ((this.freeSpaces.get(i).getLENGTH() + this.freeSpaces.get(i).getSTART()) == (this.freeSpaces
+						.get(i + 1).getSTART()))
+				{
+					// Length of free space is ith + ith +1, then delete ith + 1  from the lsit
+					this.freeSpaces.get(i)
+							.setLENGTH(this.freeSpaces.get(i).getLENGTH() + this.freeSpaces.get(i + 1).getLENGTH());
+					this.freeSpaces.remove(i + 1);
+				}
+				if(this.freeSpaces.get(i).getLENGTH() >= wantedSpace)
+				{
+					process.LIMIT = process.LIMIT + wantedSpace;
+					freeSpaces.get(i).setSTART(freeSpaces.get(i).getSTART() + wantedSpace);
+					freeSpaces.get(i).setLENGTH(wantedSpace);
+					if (freeSpaces.get(i).getLENGTH() == 0)
+					{
+						freeSpaces.remove(i);
+					}
+				}
 			}
 		}
 	}
