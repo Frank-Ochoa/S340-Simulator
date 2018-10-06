@@ -152,7 +152,7 @@ public class Main
 		// as no more programs with READY status exist in the process table.
 
 		/* Project 2 */
-		List<Program> toBeRan = new LinkedList<>();
+		/*List<Program> toBeRan = new LinkedList<>();
 
 		for(int p = 1; p <= 5; p++)
 		{
@@ -179,7 +179,64 @@ public class Main
 			toBeRan.add(px1);
 		}
 
-		os.schedule(toBeRan);
+		os.schedule(toBeRan);*/
+
+		ProgramBuilder x1 = new ProgramBuilder();
+		x1.loadi(8);
+		x1.output();
+		x1.end();
+
+		ProgramBuilder x2 =  new ProgramBuilder();
+		x2.loadi(5);
+		x2.output();
+		x2.end();
+
+		ProgramBuilder x3 = new ProgramBuilder();
+		x3.loadi(2);
+		x3.loadi(3);
+		x3.loadi(4);
+		x3.loadi(5);
+		x3.loadi(4);
+		x3.syscall(0);
+		x3.output();
+		x3.end();
+
+		ProgramBuilder x4 = new ProgramBuilder();
+		x4.loadi(15);
+		x4.loadi(15);
+		x4.loadi(15);
+		x4.loadi(16);
+		x4.output();
+		x4.end();
+
+		ProgramBuilder x5 = new ProgramBuilder();
+		x5.loadi(15);
+		x5.loadi(15);
+		x5.loadi(15);
+		x5.loadi(15);
+		x5.loadi(15);
+		x5.loadi(15);
+		x5.loadi(15);
+		x5.loadi(15);
+		x5.loadi(15);
+		x5.loadi(15);
+		x5.loadi(15);
+		x5.loadi(15);
+		x5.loadi(15);
+		x5.loadi(15);
+		x5.loadi(15);
+		x5.loadi(15);
+		x5.loadi(15);
+		x5.loadi(15);
+
+
+
+		Program X1 = x1.build();
+		Program X2 = x2.build();
+		Program X3 = x3.build();
+		Program X4 = x4.build();
+
+		os.schedule(List.of(X3, X1, X2, X4));
 
 	}
 

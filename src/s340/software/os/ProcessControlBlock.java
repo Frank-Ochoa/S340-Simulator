@@ -2,7 +2,7 @@ package s340.software.os;
 
 import s340.hardware.MemoryController;
 
-public class ProcessControlBlock
+public class ProcessControlBlock implements Comparable<ProcessControlBlock>
 {
 	int Acc;
 	int X;
@@ -25,5 +25,10 @@ public class ProcessControlBlock
 	{
 		return "ProcessControlBlock{" + "Acc=" + Acc + ", X=" + X + ", PC=" + PC + ", Status=" + Status + ", BASE="
 				+ BASE + ", LIMIT=" + LIMIT + '}';
+	}
+
+	@Override public int compareTo(ProcessControlBlock o)
+	{
+		return this.BASE - o.BASE;
 	}
 }

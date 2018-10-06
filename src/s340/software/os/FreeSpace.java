@@ -1,6 +1,6 @@
 package s340.software.os;
 
-public class FreeSpace
+public class FreeSpace implements Comparable<FreeSpace>
 {
 	private int START;
 	private int LENGTH;
@@ -31,5 +31,18 @@ public class FreeSpace
 		this.LENGTH = this.LENGTH - programLength;
 	}
 
+	public void setLENGTHLITERAL(int length)
+	{
+		this.LENGTH = length;
+	}
 
+	@Override public int compareTo(FreeSpace o)
+	{
+		return (this.getSTART() - o.getSTART());
+	}
+
+	@Override public String toString()
+	{
+		return "FreeSpace{" + "START=" + START + ", LENGTH=" + LENGTH + '}';
+	}
 }

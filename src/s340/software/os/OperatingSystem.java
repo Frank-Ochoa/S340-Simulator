@@ -3,9 +3,7 @@ package s340.software.os;
 import s340.hardware.*;
 import s340.hardware.exception.MemoryFault;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import static s340.software.os.ProcessState.*;
 
@@ -22,6 +20,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 	private ProcessControlBlock[] process_table;
 	private int runningIndex;
 	private List<FreeSpace> freeSpaces;
+	private List<ProcessControlBlock> blockList;
 
 	/*
 	 * Create an operating system on the given machine.
@@ -36,6 +35,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		// Initial free space is entire block of memory until a process is loaded in
 		this.freeSpaces = new ArrayList<>();
 		freeSpaces.add(new FreeSpace(0, Machine.MEMORY_SIZE));
+		this.blockList = new LinkedList<>();
 
 		// Create a wait process that continually jumps to itself
 		ProgramBuilder pb = new ProgramBuilder();
@@ -135,6 +135,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				if (this.process_table[i] == null || this.process_table[i].Status == END)
 				{
 					this.process_table[i] = x;
+					this.blockList.add(x);
 					break;
 				}
 			}
@@ -204,6 +205,10 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			case Trap.END:
 			case Trap.DIV_ZERO:
 				process_table[runningIndex].Status = END;
+				freeSpaces.add(new FreeSpace(process_table[runningIndex].BASE,
+						process_table[runningIndex].BASE + process_table[runningIndex].LIMIT));
+				System.out.println("Program ended, added a space" + freeSpaces);
+				mergedSpaces();
 				break;
 			default:
 				System.err.println("UNHANDLED TRAP " + trapNumber);
@@ -291,12 +296,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		return -1;
 	}
 
-	@SuppressWarnings("Duplicates") private void sbrk(int wantedSpace) throws MemoryFault
+	private boolean expandInPlace(ProcessControlBlock process, int wantedSpace)
 	{
-		ProcessControlBlock process = this.process_table[runningIndex];
-
-		// Expand in place
-		for (int i = 0; i < this.freeSpaces.size(); i++)
+		for (int i = 0; i < freeSpaces.size(); i++)
 		{
 			if ((process.LIMIT + process.BASE) == freeSpaces.get(i).getSTART())
 			{
@@ -309,17 +311,22 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 					if (freeSpaces.get(i).getLENGTH() == 0)
 					{
 						freeSpaces.remove(i);
+						System.out.println("Removed a space" + freeSpaces);
 					}
 
 					// sbrk worked load 0 into the accumulator
 					process.Acc = 0;
-					break;
+					return true;
 				}
-
 			}
+
 		}
 
-		// Move the program
+		return false;
+	}
+
+	private boolean moveProgram(ProcessControlBlock process, int wantedSpace) throws MemoryFault
+	{
 		int address = 0;
 		for (int i = 0; i < freeSpaces.size(); i++)
 		{
@@ -328,9 +335,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				for (int b = process.BASE; b < (process.LIMIT + process.BASE); b++)
 				{
 					// Load instructions of start of program
-					int insnt = machine.memory.load(b);
+					int instruction = machine.memory.load(b);
 					// Store at free space
-					machine.memory.store(freeSpaces.get(i).getSTART() + address++, insnt);
+					machine.memory.store(freeSpaces.get(i).getSTART() + address++, instruction);
 				}
 
 				// Maybe refactor in a method to do this
@@ -340,53 +347,144 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				if (freeSpaces.get(i).getLENGTH() == 0)
 				{
 					freeSpaces.remove(i);
+					System.out.println("Removed a space" + freeSpaces);
 				}
 
 				freeSpaces.add(new FreeSpace(process.BASE, process.LIMIT));
+				System.out.println("Added a space" + freeSpaces);
 
 				process.LIMIT = process.LIMIT + wantedSpace;
 				process.BASE = freeSpaces.get(i).getSTART();
 
 				// sbrk worked, load 0 into the accumulator
 				process.Acc = 0;
-				break;
+				return true;
 			}
 		}
 
-		// Else scan list of free spaces looking for adjacent free and merging them together
-		for (int i = 0; i < this.freeSpaces.size(); i++)
+		return false;
+	}
+
+	@SuppressWarnings("Duplicates") private boolean mergedSpaces()
+	{
+		// Put in check to make sure things are in freespaces
+
+		Collections.sort(freeSpaces);
+		System.out.println("Sorted the freespaces" + freeSpaces);
+
+		boolean didMerge = false;
+		Iterator<FreeSpace> it = freeSpaces.iterator();
+		FreeSpace space = it.next();
+
+		while(it.hasNext())
 		{
-			if (freeSpaces.get(i + 1) != null)
+			FreeSpace spaceNext = it.next();
+			if(space.getLENGTH() + space.getSTART() == spaceNext.getSTART())
 			{
-				// if ith free space end == start of ith + 1 free space, merge them
-				if ((this.freeSpaces.get(i).getLENGTH() + this.freeSpaces.get(i).getSTART()) == (this.freeSpaces
-						.get(i + 1).getSTART()))
-				{
-					// Length of free space is ith + ith +1, then delete ith + 1  from the lsit
-					this.freeSpaces.get(i)
-							.setLENGTH(this.freeSpaces.get(i).getLENGTH() + this.freeSpaces.get(i + 1).getLENGTH());
-					this.freeSpaces.remove(i + 1);
-				}
-				if(this.freeSpaces.get(i).getLENGTH() >= wantedSpace)
-				{
-					process.LIMIT = process.LIMIT + wantedSpace;
-					freeSpaces.get(i).setSTART(freeSpaces.get(i).getSTART() + wantedSpace);
-					freeSpaces.get(i).setLENGTH(wantedSpace);
+				space.setLENGTHLITERAL(space.getLENGTH() + spaceNext.getLENGTH());
+				it.remove();
+				didMerge = true;
+			}
+			else
+			{
+				space = spaceNext;
+			}
+		}
 
-					if (freeSpaces.get(i).getLENGTH() == 0)
+		return didMerge;
+	}
+
+	private boolean memoryCompaction() throws MemoryFault
+	{
+		int address = 0;
+		boolean didCompaction = false;
+
+		Collections.sort(blockList);
+		Collections.sort(freeSpaces);
+
+		do
+		{
+			for (int i = 0; i < blockList.size(); i++)
+			{
+				for (int j = 0; j < freeSpaces.size(); i++)
+				{
+					if (process_table[i].BASE == (freeSpaces.get(j).getSTART() + freeSpaces.get(j).getLENGTH()))
 					{
-						freeSpaces.remove(i);
-					}
+						for (int b = process_table[i].BASE; b < (process_table[i].BASE + process_table[i].LIMIT); b++)
+						{
+							// Load instructions of start of program
+							int instruction = machine.memory.load(b);
+							// Store at free space
+							machine.memory.store(freeSpaces.get(j).getSTART() + address++, instruction);
+						}
 
-					// sbrk worked load 0 into the accumulator
-					process.Acc = 0;
-					break;
+						process_table[i].LIMIT = process_table[i].LIMIT - freeSpaces.get(j).getLENGTH();
+						process_table[i].BASE = freeSpaces.get(i).getSTART();
+
+						freeSpaces.get(j).setSTART(freeSpaces.get(j).getSTART() + process_table[i].LIMIT);
+
+						didCompaction = true;
+					}
 				}
+			}
+
+			mergedSpaces();
+		}while(freeSpaces.size() > 1);
+
+
+		return didCompaction;
+	}
+
+	private boolean sbrk(int wantedSpace) throws MemoryFault
+	{
+		ProcessControlBlock process = this.process_table[runningIndex];
+
+		// Expand in place
+		if (expandInPlace(process, wantedSpace))
+		{
+			return true;
+		}
+
+		// Move the program
+		if (moveProgram(process, wantedSpace))
+		{
+			return true;
+		}
+
+		// Else scan list of free spaces looking for adjacent free and merging them together, (Perform merging)
+		// Now check if you can expand in place or move the program with the newly merged free spaces
+		if (mergedSpaces())
+		{
+			if (expandInPlace(process, wantedSpace))
+			{
+				return true;
+			}
+
+			if (moveProgram(process, wantedSpace))
+			{
+				return true;
 			}
 		}
 
 		// Else perform memory compaction
+		if (memoryCompaction())
+		{
+			if(process.LIMIT == freeSpaces.get(0).getSTART())
+			{
+				expandInPlace(process, wantedSpace);
+			}
+			else
+			{
+				moveProgram(process, wantedSpace);
+			}
+		}
+		else
+		{
+			System.err.println("Error: No memory availible");
+			System.exit(1);
+		}
 
+		return false;
 	}
 }
 
