@@ -135,7 +135,6 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				if (this.process_table[i] == null || this.process_table[i].Status == END)
 				{
 					this.process_table[i] = x;
-					this.blockList.add(x);
 					break;
 				}
 			}
@@ -396,6 +395,13 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 	private boolean memoryCompaction(ProcessControlBlock process, int wantedSpace) throws MemoryFault
 	{
+		for(ProcessControlBlock x : process_table)
+		{
+			if(x.Status == READY || x.Status == RUNNING)
+			{
+				this.blockList.add(x);
+			}
+		}
 		Collections.sort(blockList);
 
 		// Find index in blockList of proccess calling sbrk
@@ -409,35 +415,23 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			}
 		}
 
-		if(index != -1)
+		if (index != -1)
 		{
 			// Move everything in blockList <= index left
-			int addressLeft = 0;
+			int addressLeft = process_table[0].LIMIT;
 			for (int i = 0; i <= index; i++)
 			{
 				for (int j = 0; j < process_table.length; j++)
 				{
 					if (blockList.get(i).BASE == process_table[j].BASE)
 					{
-						for (int k = 0; k < freeSpaces.size(); k++)
+						process_table[j].BASE = addressLeft;
+						for (int b = process_table[j].BASE; b < (process_table[j].BASE + process_table[j].LIMIT); b++)
 						{
-							if (process_table[j].BASE == (freeSpaces.get(k).getSTART() + freeSpaces.get(k).getLENGTH()))
-							{
-								for (int b = process_table[j].BASE; b < (process_table[j].BASE + process_table[j].LIMIT); b++)
-								{
-									// Load instructions of start of program
-									int instruction = machine.memory.load(b);
-									// Store at free space
-									machine.memory.store(freeSpaces.get(k).getSTART() + addressLeft++, instruction);
-								}
-
-								process_table[j].BASE = freeSpaces.get(k).getSTART();
-
-								freeSpaces.get(k).setSTART(freeSpaces.get(k).getSTART() + process_table[j].LIMIT);
-
-								mergedSpaces();
-								break;
-							}
+							// Load instructions of start of program
+							int instruction = machine.memory.load(b);
+							// Store at free space
+							machine.memory.store(addressLeft++, instruction);
 						}
 
 						break;
@@ -446,35 +440,22 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			}
 
 			//Move everything in blockList > index right
-			int addressRight = 0;
+			int addressRight = Machine.MEMORY_SIZE;
 			for (int i = blockList.size() - 1; i > index; i--)
 			{
 				for (int j = 0; j < process_table.length; j++)
 				{
 					if (blockList.get(i).BASE == process_table[j].BASE)
 					{
-						for (int k = 0; k < freeSpaces.size(); k++)
+						process_table[j].BASE = addressRight - process_table[j].LIMIT;
+						for (int b = (process_table[i].BASE + process_table[i].LIMIT) - 1;
+							 b >= process_table[i].BASE; b--)
 						{
-							if ((process_table[j].BASE + process_table[j].LIMIT) == freeSpaces.get(k).getSTART())
-							{
-								for (int b = (process_table[i].BASE + process_table[i].LIMIT) - 1; b >= process_table[i].BASE; b--)
-								{
-									// Load instructions of start of program
-									int instruction = machine.memory.load(b);
-									// Store at free space
-									machine.memory.store((freeSpaces.get(k).getSTART() + freeSpaces.get(k).getLENGTH())
-											- addressRight++, instruction);
-								}
-
-								process_table[i].BASE = process_table[i].BASE + freeSpaces.get(k).getLENGTH();
-
-								freeSpaces.get(k).setSTART(process_table[i].BASE - freeSpaces.get(k).getLENGTH());
-
-								mergedSpaces();
-								break;
-							}
+							// Load instructions of start of program
+							int instruction = machine.memory.load(b);
+							// Store at free space
+							machine.memory.store(addressRight--, instruction);
 						}
-
 						break;
 					}
 				}
@@ -484,6 +465,18 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		{
 			return false;
 		}
+
+		List<FreeSpace> newFreeSpaces = new ArrayList<>();
+		if(blockList.get(blockList.size() -1).LIMIT == Machine.MEMORY_SIZE)
+		{
+			newFreeSpaces.add(new FreeSpace(blockList.get(index).BASE, blockList.get(index + 1).BASE));
+		}
+		else
+		{
+			newFreeSpaces.add(new FreeSpace(blockList.get(index).BASE , Machine.MEMORY_SIZE));
+		}
+
+		freeSpaces = newFreeSpaces;
 
 		// Attempt to expand in place
 		return expandInPlace(process, wantedSpace);
@@ -529,8 +522,6 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			System.err.println("Error: Not enough memory availible");
 			System.exit(1);
 		}
-
-
 
 		return false;
 	}
