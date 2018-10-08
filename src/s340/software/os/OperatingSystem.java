@@ -42,7 +42,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		pb.size(0);
 		pb.jmp(0);
 		Program b1 = pb.build();
-		List<Program> x = new LinkedList<>();
+		List<Program> x = new ArrayList<>();
 		x.add(b1);
 		// Load it into memory and store it into the process control table
 		schedule(x);
@@ -376,10 +376,10 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		Iterator<FreeSpace> it = freeSpaces.iterator();
 		FreeSpace space = it.next();
 
-		while(it.hasNext())
+		while (it.hasNext())
 		{
 			FreeSpace spaceNext = it.next();
-			if(space.getLENGTH() + space.getSTART() == spaceNext.getSTART())
+			if (space.getLENGTH() + space.getSTART() == spaceNext.getSTART())
 			{
 				space.setLENGTHLITERAL(space.getLENGTH() + spaceNext.getLENGTH());
 				it.remove();
@@ -394,48 +394,130 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		return didMerge;
 	}
 
-	private boolean memoryCompaction() throws MemoryFault
+	@SuppressWarnings("Duplicates") private boolean memoryCompaction(ProcessControlBlock process, int wantedSpace) throws MemoryFault
 	{
-		int address = 0;
-		boolean didCompaction = false;
-
 		Collections.sort(blockList);
 		Collections.sort(freeSpaces);
 
-		do
+		// Find index in blockList of proccess calling sbrk
+		int index = -1;
+		for (int i = 0; i < blockList.size(); i++)
 		{
-			for (int i = 0; i < blockList.size(); i++)
+			if (blockList.get(i).BASE == process.BASE)
 			{
-				for (int j = 0; j < freeSpaces.size(); i++)
+				index = i;
+				break;
+			}
+		}
+
+		if(index != -1)
+		{
+			// Move everything < index left
+			int addressLeft = 0;
+			for (int i = 0; i < index; i++)
+			{
+				for (int j = 0; j < process_table.length; j++)
 				{
-					if (process_table[i].BASE == (freeSpaces.get(j).getSTART() + freeSpaces.get(j).getLENGTH()))
+					if (blockList.get(i).BASE == process_table[j].BASE)
 					{
-						for (int b = process_table[i].BASE; b < (process_table[i].BASE + process_table[i].LIMIT); b++)
+						for (int k = 0; k < freeSpaces.size(); k++)
 						{
-							// Load instructions of start of program
-							int instruction = machine.memory.load(b);
-							// Store at free space
-							machine.memory.store(freeSpaces.get(j).getSTART() + address++, instruction);
+							if (process_table[j].BASE == (freeSpaces.get(k).getSTART() + freeSpaces.get(k).getLENGTH()))
+							{
+								for (int b = process_table[j].BASE; b < (process_table[j].BASE + process_table[j].LIMIT); b++)
+								{
+									// Load instructions of start of program
+									int instruction = machine.memory.load(b);
+									// Store at free space
+									machine.memory.store(freeSpaces.get(k).getSTART() + addressLeft++, instruction);
+								}
+
+								process_table[j].BASE = freeSpaces.get(k).getSTART();
+
+								freeSpaces.get(k).setSTART(freeSpaces.get(k).getSTART() + process_table[j].LIMIT);
+
+								break;
+							}
 						}
 
-						process_table[i].LIMIT = process_table[i].LIMIT - freeSpaces.get(j).getLENGTH();
-						process_table[i].BASE = freeSpaces.get(i).getSTART();
-
-						freeSpaces.get(j).setSTART(freeSpaces.get(j).getSTART() + process_table[i].LIMIT);
-
-						didCompaction = true;
+						break;
 					}
 				}
 			}
 
-			mergedSpaces();
-		}while(freeSpaces.size() > 1);
+			//Move everything > index right
+			int addressRight = 0;
+			for (int i = blockList.size() - 1; i > index; i--)
+			{
+				for (int j = 0; j < process_table.length; j++)
+				{
+					if (blockList.get(i).BASE == process_table[j].BASE)
+					{
+						for (int k = 0; k < freeSpaces.size(); k++)
+						{
+							if ((process_table[j].BASE + process_table[j].LIMIT) == freeSpaces.get(k).getSTART())
+							{
+								for (int b = (process_table[i].BASE + process_table[i].LIMIT) - 1; b >= process_table[i].BASE; b--)
+								{
+									// Load instructions of start of program
+									int instruction = machine.memory.load(b);
+									// Store at free space
+									machine.memory.store((freeSpaces.get(k).getSTART() + freeSpaces.get(k).getLENGTH())
+											- addressRight++, instruction);
+								}
 
+								process_table[i].BASE = process_table[i].BASE + freeSpaces.get(k).getLENGTH();
 
-		return didCompaction;
+								freeSpaces.get(k).setSTART(process_table[i].BASE - freeSpaces.get(k).getLENGTH());
+
+								break;
+							}
+						}
+
+						break;
+					}
+				}
+			}
+
+			//Now move process that called sbrk all the way left
+			for (int i = 0; i < process_table.length; i++)
+			{
+				if (blockList.get(index).BASE == process_table[i].BASE)
+				{
+					for (int k = 0; k < freeSpaces.size(); k++)
+					{
+						if (process_table[i].BASE == (freeSpaces.get(k).getSTART() + freeSpaces.get(k).getLENGTH()))
+						{
+							for (int b = process_table[i].BASE; b < (process_table[i].BASE + process_table[i].LIMIT); b++)
+							{
+								// Load instructions of start of program
+								int instruction = machine.memory.load(b);
+								// Store at free space
+								machine.memory.store(freeSpaces.get(k).getSTART() + addressLeft++, instruction);
+							}
+
+							process_table[i].BASE = freeSpaces.get(k).getSTART();
+
+							freeSpaces.get(k).setSTART(freeSpaces.get(k).getSTART() + process_table[i].LIMIT);
+
+							break;
+						}
+					}
+
+					break;
+				}
+			}
+		}
+		else
+		{
+			return false;
+		}
+
+		// Attempt to expand in place
+		return expandInPlace(process, wantedSpace);
 	}
 
-	private boolean sbrk(int wantedSpace) throws MemoryFault
+	@SuppressWarnings("Duplicates") private boolean sbrk(int wantedSpace) throws MemoryFault
 	{
 		ProcessControlBlock process = this.process_table[runningIndex];
 
@@ -467,24 +549,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		}
 
 		// Else perform memory compaction
-		if (memoryCompaction())
-		{
-			if(process.LIMIT == freeSpaces.get(0).getSTART())
-			{
-				expandInPlace(process, wantedSpace);
-			}
-			else
-			{
-				moveProgram(process, wantedSpace);
-			}
-		}
-		else
-		{
-			System.err.println("Error: No memory availible");
-			System.exit(1);
-		}
+
+
 
 		return false;
 	}
 }
-
