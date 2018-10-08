@@ -394,7 +394,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		return didMerge;
 	}
 
-	@SuppressWarnings("Duplicates") private boolean memoryCompaction(ProcessControlBlock process, int wantedSpace) throws MemoryFault
+	private boolean memoryCompaction(ProcessControlBlock process, int wantedSpace) throws MemoryFault
 	{
 		Collections.sort(blockList);
 		Collections.sort(freeSpaces);
@@ -412,9 +412,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 		if(index != -1)
 		{
-			// Move everything < index left
+			// Move everything in blockList <= index left
 			int addressLeft = 0;
-			for (int i = 0; i < index; i++)
+			for (int i = 0; i <= index; i++)
 			{
 				for (int j = 0; j < process_table.length; j++)
 				{
@@ -445,7 +445,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				}
 			}
 
-			//Move everything > index right
+			//Move everything in blockList > index right
 			int addressRight = 0;
 			for (int i = blockList.size() - 1; i > index; i--)
 			{
@@ -478,56 +478,30 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 					}
 				}
 			}
-
-			//Now move process that called sbrk all the way left
-			for (int i = 0; i < process_table.length; i++)
-			{
-				if (blockList.get(index).BASE == process_table[i].BASE)
-				{
-					for (int k = 0; k < freeSpaces.size(); k++)
-					{
-						if (process_table[i].BASE == (freeSpaces.get(k).getSTART() + freeSpaces.get(k).getLENGTH()))
-						{
-							for (int b = process_table[i].BASE; b < (process_table[i].BASE + process_table[i].LIMIT); b++)
-							{
-								// Load instructions of start of program
-								int instruction = machine.memory.load(b);
-								// Store at free space
-								machine.memory.store(freeSpaces.get(k).getSTART() + addressLeft++, instruction);
-							}
-
-							process_table[i].BASE = freeSpaces.get(k).getSTART();
-
-							freeSpaces.get(k).setSTART(freeSpaces.get(k).getSTART() + process_table[i].LIMIT);
-
-							break;
-						}
-					}
-
-					break;
-				}
-			}
 		}
 		else
 		{
 			return false;
 		}
 
+		//Merge free spaces
+		mergedSpaces();
+
 		// Attempt to expand in place
 		return expandInPlace(process, wantedSpace);
 	}
 
-	@SuppressWarnings("Duplicates") private boolean sbrk(int wantedSpace) throws MemoryFault
+	private boolean sbrk(int wantedSpace) throws MemoryFault
 	{
 		ProcessControlBlock process = this.process_table[runningIndex];
 
-		// Expand in place
+		// Attempt to expand in place
 		if (expandInPlace(process, wantedSpace))
 		{
 			return true;
 		}
 
-		// Move the program
+		// Attempt to move the program
 		if (moveProgram(process, wantedSpace))
 		{
 			return true;
@@ -547,8 +521,16 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				return true;
 			}
 		}
-
-		// Else perform memory compaction
+		// Else attempt to perform memory compaction
+		if (memoryCompaction(process, wantedSpace))
+		{
+			return true;
+		}
+		else
+		{
+			System.err.println("Error: Not enough memory availible");
+			System.exit(1);
+		}
 
 
 
