@@ -397,7 +397,6 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 	private boolean memoryCompaction(ProcessControlBlock process, int wantedSpace) throws MemoryFault
 	{
 		Collections.sort(blockList);
-		Collections.sort(freeSpaces);
 
 		// Find index in blockList of proccess calling sbrk
 		int index = -1;
