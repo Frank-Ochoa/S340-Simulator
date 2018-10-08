@@ -436,6 +436,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 								freeSpaces.get(k).setSTART(freeSpaces.get(k).getSTART() + process_table[j].LIMIT);
 
+								mergedSpaces();
 								break;
 							}
 						}
@@ -470,6 +471,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 								freeSpaces.get(k).setSTART(process_table[i].BASE - freeSpaces.get(k).getLENGTH());
 
+								mergedSpaces();
 								break;
 							}
 						}
@@ -483,9 +485,6 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		{
 			return false;
 		}
-
-		//Merge free spaces
-		mergedSpaces();
 
 		// Attempt to expand in place
 		return expandInPlace(process, wantedSpace);
