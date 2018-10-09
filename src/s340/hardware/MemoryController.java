@@ -51,7 +51,8 @@ public class MemoryController
 	 */
 	public int load(int address) throws MemoryFault
 	{
-		checkAddress( address);
+		checkAddress(address);
+		//System.out.println("Load called with address: " + address + " and base: " + base);
 		return memory[base + address];
 	}
 
@@ -60,12 +61,32 @@ public class MemoryController
 	 */
 	public void store(int address, int value) throws MemoryFault
 	{
-		/*System.out.println("Virtual address = " + address);
-		System.out.println("Base in method = " + base);*/
+		System.out.println("Virtual address = " + address);
+		System.out.println("Base in method = " + base);
 		checkAddress(address);
 		memory[base + address] = value;
 	}
 
 	// Dunno if can add
+	public int loadPhysical(int address) throws MemoryFault
+	{
+		checkAddress(address);
+		return memory[address];
+	}
 
+	public void storePhysical(int address, int value) throws MemoryFault
+	{
+		checkAddress(address);
+		memory[address] = value;
+	}
+
+	public int getBase()
+	{
+		return base;
+	}
+
+	public int getLimit()
+	{
+		return limit;
+	}
 }

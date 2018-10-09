@@ -1,7 +1,5 @@
 package s340.software.os;
 
-import s340.hardware.MemoryController;
-
 public class ProcessControlBlock implements Comparable<ProcessControlBlock>
 {
 	int Acc;

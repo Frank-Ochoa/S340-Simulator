@@ -236,7 +236,109 @@ public class Main
 		Program X3 = x3.build();
 		Program X4 = x4.build();
 
-		os.schedule(List.of(X3, X1, X2, X4));
+		// X3, X1, X2, X4 for merging testing
+
+		ProgramBuilder mem1 = new ProgramBuilder();
+		// Size of 50
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(20);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(1);
+		mem1.loadi(20);
+		mem1.output();
+		mem1.end();
+
+		// Size of 6
+		ProgramBuilder mem2 = new ProgramBuilder();
+		mem2.loadi(10);
+		mem2.loadi(10);
+		mem2.output();
+		mem2.end();
+
+		// Size of 100
+		ProgramBuilder mem3 = new ProgramBuilder();
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(30);
+		mem3.loadi(50);
+		mem3.syscall(0);
+		mem3.output();
+		mem3.end();
+
+
+		Program MEM1 = mem1.build();
+		Program MEM2 = mem2.build();
+		Program MEM3 = mem3.build();
+
+
+
+
+
+		os.schedule(List.of(MEM1, MEM2, MEM3));
 
 	}
 
