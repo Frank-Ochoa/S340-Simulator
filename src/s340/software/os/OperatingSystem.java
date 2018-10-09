@@ -338,9 +338,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				for (int b = process.BASE; b < (process.LIMIT + process.BASE); b++)
 				{
 					// Load instructions of start of program
-					int instruction = machine.memory.loadPhysical(b);
+					int instruction = machine.memory.load(b);
 					// Store at free space
-					machine.memory.storePhysical(freeSpaces.get(i).getSTART() + address++, instruction);
+					machine.memory.store(freeSpaces.get(i).getSTART() + address++, instruction);
 				}
 
 				// Maybe refactor in a method to do this
@@ -395,6 +395,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			}
 		}
 
+		System.out.println("Merged Spaces: " + freeSpaces);
 		return didMerge;
 	}
 
@@ -433,6 +434,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 		if (index != -1)
 		{
+			// do a check for it being index only so that it doesn't recopy itself
 			// Move everything in blockList <= index left
 			int addressLeft = process_table[0].LIMIT;
 			for (int i = 0; i <= index; i++)
@@ -458,7 +460,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			}
 
 			//Move everything in blockList > index right
-			int addressRight = Machine.MEMORY_SIZE;
+			int addressRight = Machine.MEMORY_SIZE - 1;
 			for (int i = blockList.size() - 1; i > index; i--)
 			{
 				int processBASE = blockList.get(i).BASE;
@@ -468,13 +470,11 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				System.out.println("Diagnostic: start of move right");
 				for (int b = (processBASE + processLIMIT) - 1; b >= processBASE; b--)
 				{
-					System.out.println(b);
-					System.out.println(blockList.get(i).BASE);
-					System.out.println(blockList.get(i).LIMIT);
-
+					System.out.println("b is: " + b);
+					System.out.println("addressRight is : " + addressRight);
 					// Load instructions of start of program
 					System.out.println("Diagnostic: before load");
-					int instruction = machine.memory.load(10);
+					int instruction = machine.memory.load(b);
 					System.out.println(instruction);
 					System.out.println("Diagnostic: after load");
 					// Store at free space
@@ -489,7 +489,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		}
 
 		List<FreeSpace> newFreeSpaces = new ArrayList<>();
-		if (blockList.get(blockList.size() - 1).LIMIT == Machine.MEMORY_SIZE)
+		if (blockList.get(blockList.size() - 1).LIMIT + blockList.get(blockList.size() - 1).BASE == Machine.MEMORY_SIZE -1)
 		{
 			newFreeSpaces.add(new FreeSpace(blockList.get(index).LIMIT  + blockList.get(index).BASE, blockList.get(index + 1).BASE));
 		}
