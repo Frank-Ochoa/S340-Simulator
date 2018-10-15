@@ -361,6 +361,38 @@ public class Main
 
 		//os.schedule(List.of(MOVE1, MOVE2));
 
+		ProgramBuilder longProgram = new ProgramBuilder();
+		for(int x = 1; x < 500; x++)
+		{
+			longProgram.loadi(1);
+		}
+		longProgram.output();
+		longProgram.end();
+
+		ProgramBuilder shortProgram = new ProgramBuilder();
+		shortProgram.loadi(1001);
+		shortProgram.output();
+		shortProgram.end();
+
+		ProgramBuilder sbrkCaller = new ProgramBuilder();
+		for(int x = 1; x < 20; x++)
+		{
+			sbrkCaller.loadi(40);
+			sbrkCaller.syscall(0);
+			sbrkCaller.loadi(777);
+			sbrkCaller.loadi(777);
+			sbrkCaller.loadi(777);
+			sbrkCaller.loadi(777);
+		}
+		sbrkCaller.output();
+		sbrkCaller.end();
+
+		Program LONGPROGRAM = longProgram.build();
+		Program SHORTPROGRAM = shortProgram.build();
+		Program SBRKCALLER = sbrkCaller.build();
+
+		os.schedule(List.of(SBRKCALLER, LONGPROGRAM, SHORTPROGRAM));
+
 	}
 
 }

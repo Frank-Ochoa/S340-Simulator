@@ -3,7 +3,10 @@ package s340.software.os;
 import s340.hardware.*;
 import s340.hardware.exception.MemoryFault;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 
 import static s340.software.os.ProcessState.*;
 
@@ -20,7 +23,6 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 	private ProcessControlBlock[] process_table;
 	private int runningIndex;
 	private List<FreeSpace> freeSpaces;
-	private List<ProcessControlBlock> blockList;
 
 	/*
 	 * Create an operating system on the given machine.
@@ -35,7 +37,6 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		// Initial free space is entire block of memory until a process is loaded in
 		this.freeSpaces = new ArrayList<>();
 		freeSpaces.add(new FreeSpace(0, Machine.MEMORY_SIZE));
-		this.blockList = new LinkedList<>();
 
 		// Create a wait process that continually jumps to itself
 		ProgramBuilder pb = new ProgramBuilder();
@@ -296,6 +297,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			}
 		}
 
+		System.err.println("Error: Not enough Memory");
 		System.exit(1);
 		return -1;
 	}
@@ -358,12 +360,10 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 				process.LIMIT = process.LIMIT + wantedSpace;
 
-
 				if (freeSpaces.get(i).getLENGTH() == 0)
 				{
 					freeSpaces.remove(i);
 				}
-
 
 				// sbrk worked, load 0 into the accumulator
 				process.Acc = 0;
@@ -411,17 +411,18 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		machine.memory.setBase(0);
 		machine.memory.setLimit(Machine.MEMORY_SIZE);
 
-		for(int i = 1; i < process_table.length; i++)
+		List<ProcessControlBlock> blockList = new ArrayList<>();
+
+		for (int i = 1; i < process_table.length; i++)
 		{
-			if(process_table[i] != null && process_table[i].Status != END)
+			if (process_table[i] != null && process_table[i].Status != END)
 			{
-				this.blockList.add(process_table[i]);
+				blockList.add(process_table[i]);
 			}
 		}
 
 		Collections.sort(blockList);
 		System.out.println("Ordered PCBS: " + blockList);
-
 
 		// Find index in blockList of proccess calling sbrk
 		int index = -1;
@@ -434,34 +435,34 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			}
 		}
 
+		System.out.println("INDEX IS: " + index);
+
 		if (index != -1)
 		{
 			// do a check for it being index only so that it doesn't recopy itself
 			// Move everything in blockList <= index left
-			if(process.BASE != process_table[0].LIMIT)
-			{
-				int addressLeft = process_table[0].LIMIT;
-				for (int i = 0; i <= index; i++)
-				{
-					int processBASE = blockList.get(i).BASE;
-					int processLIMIT = blockList.get(i).LIMIT;
-					blockList.get(i).BASE = addressLeft;
 
-					//System.out.println("Diagnostic: start of move left");
-					for (int b = processBASE; b < (processBASE + processLIMIT); b++)
-					{
-						//System.out.println("b is: " + b);
-						//System.out.println("addressLeft is : " + addressLeft);
-						// Load instructions of start of program
-						//System.out.println("Diagnostic: before load");
-						int instruction = machine.memory.load(b);
-						//System.out.println(instruction);
-						//System.out.println("Diagnostic: after load");
-						// Store at free space
-						machine.memory.store(addressLeft++, instruction);
-					}
-					//System.out.println("Diagnostic: end of move left");
+			int addressLeft = process_table[0].LIMIT;
+			for (int i = 0; i <= index; i++)
+			{
+				int processBASE = blockList.get(i).BASE;
+				int processLIMIT = blockList.get(i).LIMIT;
+				blockList.get(i).BASE = addressLeft;
+
+				//System.out.println("Diagnostic: start of move left");
+				for (int b = processBASE; b < (processBASE + processLIMIT); b++)
+				{
+					//System.out.println("b is: " + b);
+					//System.out.println("addressLeft is : " + addressLeft);
+					// Load instructions of start of program
+					//System.out.println("Diagnostic: before load");
+					int instruction = machine.memory.load(b);
+					//System.out.println(instruction);
+					//System.out.println("Diagnostic: after load");
+					// Store at free space
+					machine.memory.store(addressLeft++, instruction);
 				}
+				//System.out.println("Diagnostic: end of move left");
 			}
 
 			//Move everything in blockList > index right
@@ -496,20 +497,22 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		}
 
 		List<FreeSpace> newFreeSpaces = new ArrayList<>();
-		if ((blockList.get(blockList.size() - 1).LIMIT + blockList.get(blockList.size() - 1).BASE) == Machine.MEMORY_SIZE)
+		if ((blockList.get(blockList.size() - 1).LIMIT + blockList.get(blockList.size() - 1).BASE)
+				== Machine.MEMORY_SIZE)
 		{
-			newFreeSpaces.add(new FreeSpace(blockList.get(index).LIMIT  + blockList.get(index).BASE, blockList.get(index + 1).BASE));
+			newFreeSpaces.add(new FreeSpace(blockList.get(index).LIMIT + blockList.get(index).BASE,
+					blockList.get(index + 1).BASE));
 		}
 		else
 		{
-			newFreeSpaces.add(new FreeSpace(blockList.get(index).LIMIT + blockList.get(index).BASE, Machine.MEMORY_SIZE));
+			newFreeSpaces
+					.add(new FreeSpace(blockList.get(index).LIMIT + blockList.get(index).BASE, Machine.MEMORY_SIZE));
 		}
 
 		freeSpaces = newFreeSpaces;
 		//System.out.println("Diagnostic: Memory Compaction Ended");
 		diagnostics();
 		//System.out.println("Freespaces after memory compaction: " + freeSpaces);
-
 
 		// Attempt to expand in place
 		return expandInPlace(process, wantedSpace);
@@ -569,9 +572,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		StringBuilder s = new StringBuilder();
 		s.append("------------------------------------").append("\n");
 		s.append("START OF DIAGNOSTIC").append("\n\n");
-		for(int i = 0; i < process_table.length; i++)
+		for (int i = 0; i < process_table.length; i++)
 		{
-			if(process_table[i] != null && process_table[i].Status != END)
+			if (process_table[i] != null && process_table[i].Status != END)
 			{
 				s.append("Process #: ").append(i).append("\n");
 				s.append("Base: ").append(process_table[i].BASE).append("\n");
@@ -580,7 +583,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 		}
 
-		for(FreeSpace x : freeSpaces)
+		for (FreeSpace x : freeSpaces)
 		{
 			s.append(x).append("\n");
 		}
