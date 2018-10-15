@@ -337,7 +337,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		int address = 0;
 		for (int i = 0; i < freeSpaces.size(); i++)
 		{
-			if (freeSpaces.get(i).getLENGTH() >= wantedSpace + process.LIMIT)
+			if (freeSpaces.get(i).getLENGTH() >= (wantedSpace + process.LIMIT))
 			{
 				for (int b = process.BASE; b < (process.LIMIT + process.BASE); b++)
 				{
@@ -347,23 +347,23 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 					machine.memory.store(freeSpaces.get(i).getSTART() + address++, instruction);
 				}
 
+				freeSpaces.add(new FreeSpace(process.BASE, process.BASE + process.LIMIT));
+
+				process.BASE = freeSpaces.get(i).getSTART();
+
 				// Maybe refactor in a method to do this
-				freeSpaces.get(i).setSTART(freeSpaces.get(i).getSTART() + wantedSpace);
-				freeSpaces.get(i).setLENGTH(freeSpaces.get(i).getLENGTH() - wantedSpace);
+				freeSpaces.get(i).setSTART(freeSpaces.get(i).getSTART() + (wantedSpace + process.LIMIT));
+				freeSpaces.get(i).setLENGTH(freeSpaces.get(i).getLENGTH() - (wantedSpace + process.LIMIT));
+
+				process.LIMIT = process.LIMIT + wantedSpace;
+
 
 				if (freeSpaces.get(i).getLENGTH() == 0)
 				{
 					freeSpaces.remove(i);
-					System.out.println("Removed a space" + freeSpaces);
 				}
 
-				freeSpaces.add(new FreeSpace(process.BASE, process.BASE + process.LIMIT));
-				System.out.println("Added a space" + freeSpaces);
 
-				process.LIMIT = process.LIMIT + wantedSpace;
-				process.BASE = freeSpaces.get(i).getSTART();
-
-				loadRegisters(process);
 				// sbrk worked, load 0 into the accumulator
 				process.Acc = 0;
 				return true;

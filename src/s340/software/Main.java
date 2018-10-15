@@ -267,7 +267,7 @@ public class Main
 		mem1.output();
 		mem1.end();
 
-		// Size of 7, limit 8
+		// Size of 8
 		ProgramBuilder mem2 = new ProgramBuilder();
 		mem2.loadi(10);
 		mem2.loadi(10);
@@ -334,11 +334,32 @@ public class Main
 		Program MEM2 = mem2.build();
 		Program MEM3 = mem3.build();
 
+		// Mem1-3 for Expanding in Place, Merging, and Mem Compaction
+		//os.schedule(List.of(MEM2, MEM3, MEM1));
 
 
+		// Size of 10
+		ProgramBuilder move1 = new ProgramBuilder();
+		move1.loadi(10);
+		move1.loadi(10);
+		move1.loadi(69);
+		move1.syscall(0);
+		move1.loadi(777);
+		move1.output();
+		move1.end();
 
+		ProgramBuilder move2 = new ProgramBuilder();
+		for(int x = 0; x < 50; x++)
+		{
+			move2.loadi(50);
+		}
+		move2.output();
+		move2.end();
 
-		os.schedule(List.of(MEM2, MEM3, MEM1));
+		Program MOVE1 = move1.build();
+		Program MOVE2 = move2.build();
+
+		os.schedule(List.of(MOVE1, MOVE2));
 
 	}
 
