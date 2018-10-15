@@ -267,7 +267,7 @@ public class Main
 		mem1.output();
 		mem1.end();
 
-		// Size of 6
+		// Size of 7, limit 8
 		ProgramBuilder mem2 = new ProgramBuilder();
 		mem2.loadi(10);
 		mem2.loadi(10);

@@ -5,35 +5,30 @@ public class FreeSpace implements Comparable<FreeSpace>
 	private int START;
 	private int LENGTH;
 
-	public FreeSpace(int START, int END)
+	FreeSpace(int START, int END)
 	{
 		this.START = START;
 		this.LENGTH = END - START;
 	}
 
-	public int getSTART()
+	int getSTART()
 	{
 		return START;
 	}
 
-	public int getLENGTH()
+	int getLENGTH()
 	{
 		return LENGTH;
 	}
 
-	public void setSTART(int START)
+	void setSTART(int START)
 	{
 		this.START = START;
 	}
 
-	public void setLENGTH(int programLength)
+	void setLENGTH(int programLength)
 	{
-		this.LENGTH = this.LENGTH - programLength;
-	}
-
-	public void setLENGTHLITERAL(int length)
-	{
-		this.LENGTH = length;
+		this.LENGTH = programLength;
 	}
 
 	@Override public int compareTo(FreeSpace o)

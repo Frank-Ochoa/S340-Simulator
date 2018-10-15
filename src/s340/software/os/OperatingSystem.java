@@ -146,7 +146,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 			// 0 - limit now no longer free
 			freeSpaces.get(iFS).setSTART(x.BASE + x.LIMIT);
-			freeSpaces.get(iFS).setLENGTH(x.LIMIT);
+			freeSpaces.get(iFS).setLENGTH(freeSpaces.get(iFS).getLENGTH() - x.LIMIT);
 			diagnostics();
 		}
 
@@ -309,7 +309,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				{
 					process.LIMIT = process.LIMIT + wantedSpace;
 					freeSpaces.get(i).setSTART(freeSpaces.get(i).getSTART() + wantedSpace);
-					freeSpaces.get(i).setLENGTH(wantedSpace);
+					freeSpaces.get(i).setLENGTH(freeSpaces.get(i).getLENGTH() - wantedSpace);
 
 					if (freeSpaces.get(i).getLENGTH() == 0)
 					{
@@ -349,7 +349,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 				// Maybe refactor in a method to do this
 				freeSpaces.get(i).setSTART(freeSpaces.get(i).getSTART() + wantedSpace);
-				freeSpaces.get(i).setLENGTH(wantedSpace);
+				freeSpaces.get(i).setLENGTH(freeSpaces.get(i).getLENGTH() - wantedSpace);
 
 				if (freeSpaces.get(i).getLENGTH() == 0)
 				{
@@ -357,7 +357,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 					System.out.println("Removed a space" + freeSpaces);
 				}
 
-				freeSpaces.add(new FreeSpace(process.BASE, process.LIMIT));
+				freeSpaces.add(new FreeSpace(process.BASE, process.BASE + process.LIMIT));
 				System.out.println("Added a space" + freeSpaces);
 
 				process.LIMIT = process.LIMIT + wantedSpace;
@@ -388,7 +388,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			FreeSpace spaceNext = it.next();
 			if (space.getLENGTH() + space.getSTART() == spaceNext.getSTART())
 			{
-				space.setLENGTHLITERAL(space.getLENGTH() + spaceNext.getLENGTH());
+				space.setLENGTH(space.getLENGTH() + spaceNext.getLENGTH());
 				it.remove();
 				didMerge = true;
 			}
@@ -469,10 +469,11 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			{
 				int processBASE = blockList.get(i).BASE;
 				int processLIMIT = blockList.get(i).LIMIT;
-				blockList.get(i).BASE = addressRight - processLIMIT;
+				blockList.get(i).BASE = (addressRight - processLIMIT) + 1;
 
 				//System.out.println("Diagnostic: start of move right");
-				for (int b = (processBASE + processLIMIT); b >= processBASE; b--)
+				// Pretty sure this should be b = that - 1 ? But its not outputting
+				for (int b = (processBASE + processLIMIT) - 1; b >= processBASE; b--)
 				{
 					//System.out.println("b is: " + b);
 					//System.out.println("addressRight is : " + addressRight);
@@ -482,7 +483,8 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 					//System.out.println(instruction);
 					//System.out.println("Diagnostic: after load");
 					// Store at free space
-					machine.memory.store(addressRight--, instruction);
+					machine.memory.store(addressRight, instruction);
+					addressRight--;
 				}
 				//System.out.println("Diagnostic: end of move right");
 			}
@@ -493,7 +495,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		}
 
 		List<FreeSpace> newFreeSpaces = new ArrayList<>();
-		if (blockList.get(blockList.size() - 1).LIMIT + blockList.get(blockList.size() - 1).BASE == Machine.MEMORY_SIZE - 1)
+		if ((blockList.get(blockList.size() - 1).LIMIT + blockList.get(blockList.size() - 1).BASE) == Machine.MEMORY_SIZE)
 		{
 			newFreeSpaces.add(new FreeSpace(blockList.get(index).LIMIT  + blockList.get(index).BASE, blockList.get(index + 1).BASE));
 		}
@@ -503,8 +505,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		}
 
 		freeSpaces = newFreeSpaces;
-		System.out.println("Diagnostic: Memory Compaction Ended");
-		System.out.println("Freespaces after memory compaction: " + freeSpaces);
+		//System.out.println("Diagnostic: Memory Compaction Ended");
+		diagnostics();
+		//System.out.println("Freespaces after memory compaction: " + freeSpaces);
 
 
 		// Attempt to expand in place
@@ -550,6 +553,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		{
 			return true;
 		}
+		// Else nothing worked, not enough memory available and exit
 		else
 		{
 			System.err.println("Error: Not enough memory availible");
