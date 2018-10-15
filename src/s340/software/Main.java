@@ -152,7 +152,7 @@ public class Main
 		// as no more programs with READY status exist in the process table.
 
 		/* Project 2 */
-		/*List<Program> toBeRan = new LinkedList<>();
+		List<Program> toBeRan = new LinkedList<>();
 
 		for(int p = 1; p <= 5; p++)
 		{
@@ -164,12 +164,12 @@ public class Main
 			px.subi(p + 10);
 			px.jzero(22);
 			px.loadi(p);
-			px.storex(28 - p);
-			px.add(38);
-			px.store(38);
+			px.storex(27 - p);
+			px.add(37);
+			px.store(37);
 			px.incx();
 			px.jmp(4);
-			px.load(38);
+			px.load(37);
 			px.output();
 			px.end();
 
@@ -179,7 +179,7 @@ public class Main
 			toBeRan.add(px1);
 		}
 
-		os.schedule(toBeRan);*/
+		//os.schedule(toBeRan);
 
 		ProgramBuilder x1 = new ProgramBuilder();
 		x1.loadi(8);
@@ -274,7 +274,7 @@ public class Main
 		mem2.output();
 		mem2.end();
 
-		// Size of 100
+		// Size of 100, also I'm an idiot for not using a for loop, although copy paste is pretty neat too
 		ProgramBuilder mem3 = new ProgramBuilder();
 		mem3.loadi(30);
 		mem3.loadi(30);
@@ -359,7 +359,7 @@ public class Main
 		Program MOVE1 = move1.build();
 		Program MOVE2 = move2.build();
 
-		os.schedule(List.of(MOVE1, MOVE2));
+		//os.schedule(List.of(MOVE1, MOVE2));
 
 	}
 

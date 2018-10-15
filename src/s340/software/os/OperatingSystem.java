@@ -284,13 +284,14 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 	private int allocateFreeSpace(int size)
 	{
+		machine.memory.setLimit(Machine.MEMORY_SIZE);
+
 		// Scan list of free spaces looking for 1st big enough space for program size, return its index if found
 		for (int i = 0; i < this.freeSpaces.size(); i++)
 		{
 			if (this.freeSpaces.get(i).getLENGTH() >= size)
 			{
 				// Set Limit in memory to highest limit of free space. Length + its Starting position
-				machine.memory.setLimit(Machine.MEMORY_SIZE);
 				return i;
 			}
 		}
