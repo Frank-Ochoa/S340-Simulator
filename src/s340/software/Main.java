@@ -335,7 +335,7 @@ public class Main
 		Program MEM3 = mem3.build();
 
 		// Mem1-3 for Expanding in Place, Merging, and Mem Compaction
-		//os.schedule(List.of(MEM2, MEM3, MEM1));
+		os.schedule(List.of(MEM2, MEM3, MEM1));
 
 
 		// Size of 10
@@ -391,7 +391,8 @@ public class Main
 		Program SHORTPROGRAM = shortProgram.build();
 		Program SBRKCALLER = sbrkCaller.build();
 
-		os.schedule(List.of(SBRKCALLER, LONGPROGRAM, SHORTPROGRAM));
+		// Does Moving, Expanding, Merging, and Memory Compaction
+		//os.schedule(List.of(SBRKCALLER, LONGPROGRAM, SHORTPROGRAM));
 
 	}
 
