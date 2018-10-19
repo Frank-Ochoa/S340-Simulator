@@ -251,7 +251,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		{
 			case SystemCall.REQUEST_MORE_MEMORY:
 				// Load into ACC how much more memory program is requesting and pass to sbrk() method
-				sbrk(machine.cpu.acc);
+				sbrk(process_table[runningIndex].Acc);
 				diagnostics();
 				break;
 			default:
@@ -304,12 +304,16 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 	private boolean expandInPlace(ProcessControlBlock process, int wantedSpace)
 	{
+		// Loop through free spaces
 		for (int i = 0; i < freeSpaces.size(); i++)
 		{
+			// If there is an adjacent free space
 			if ((process.LIMIT + process.BASE) == freeSpaces.get(i).getSTART())
 			{
+				// If aforementioned free space is big enough
 				if (freeSpaces.get(i).getLENGTH() >= wantedSpace)
 				{
+					// Allocate more memory to program and alter the frees space appropriately
 					process.LIMIT = process.LIMIT + wantedSpace;
 					freeSpaces.get(i).setSTART(freeSpaces.get(i).getSTART() + wantedSpace);
 					freeSpaces.get(i).setLENGTH(freeSpaces.get(i).getLENGTH() - wantedSpace);
@@ -338,10 +342,13 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		machine.memory.setLimit(Machine.MEMORY_SIZE);
 
 		int address = 0;
+		// Loop through free spaces
 		for (int i = 0; i < freeSpaces.size(); i++)
 		{
+			// If there is a big enough free space to accomate the program + space it requested
 			if (freeSpaces.get(i).getLENGTH() >= (wantedSpace + process.LIMIT))
 			{
+				// Loop through its instructions
 				for (int b = process.BASE; b < (process.LIMIT + process.BASE); b++)
 				{
 					// Load instructions of start of program
@@ -350,11 +357,12 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 					machine.memory.store(freeSpaces.get(i).getSTART() + address++, instruction);
 				}
 
+				// Add a freeSpace where program had been
 				freeSpaces.add(new FreeSpace(process.BASE, process.BASE + process.LIMIT));
 
+				// Alter the registers to appropriate values
 				process.BASE = freeSpaces.get(i).getSTART();
 
-				// Maybe refactor in a method to do this
 				freeSpaces.get(i).setSTART(freeSpaces.get(i).getSTART() + (wantedSpace + process.LIMIT));
 				freeSpaces.get(i).setLENGTH(freeSpaces.get(i).getLENGTH() - (wantedSpace + process.LIMIT));
 
@@ -376,26 +384,35 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 	@SuppressWarnings("Duplicates") private boolean mergedSpaces()
 	{
-		// Put in check to make sure things are in freespaces
-		Collections.sort(freeSpaces);
-		System.out.println("Sorted the freespaces" + freeSpaces);
-
 		boolean didMerge = false;
-		Iterator<FreeSpace> it = freeSpaces.iterator();
-		FreeSpace space = it.next();
 
-		while (it.hasNext())
+		// If freeSpaces is not empty
+		if(!freeSpaces.isEmpty())
 		{
-			FreeSpace spaceNext = it.next();
-			if (space.getLENGTH() + space.getSTART() == spaceNext.getSTART())
+			// Sort the free spaces
+			Collections.sort(freeSpaces);
+			System.out.println("Sorted the freespaces" + freeSpaces);
+
+			// Iterate over them
+			Iterator<FreeSpace> it = freeSpaces.iterator();
+			FreeSpace space = it.next();
+
+			while (it.hasNext())
 			{
-				space.setLENGTH(space.getLENGTH() + spaceNext.getLENGTH());
-				it.remove();
-				didMerge = true;
-			}
-			else
-			{
-				space = spaceNext;
+				FreeSpace spaceNext = it.next();
+				// If there is an adjacent free space
+				if (space.getLENGTH() + space.getSTART() == spaceNext.getSTART())
+				{
+					// Merge them together
+					space.setLENGTH(space.getLENGTH() + spaceNext.getLENGTH());
+					// Delete free space to the right
+					it.remove();
+					didMerge = true;
+				}
+				else
+				{
+					space = spaceNext;
+				}
 			}
 		}
 
@@ -413,6 +430,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 		List<ProcessControlBlock> blockList = new ArrayList<>();
 
+		// Loop through adding correct PCBS to blockList
 		for (int i = 1; i < process_table.length; i++)
 		{
 			if (process_table[i] != null && process_table[i].Status != END)
@@ -421,6 +439,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			}
 		}
 
+		// Sort that dirty blockList
 		Collections.sort(blockList);
 		System.out.println("Ordered PCBS: " + blockList);
 
@@ -435,11 +454,10 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			}
 		}
 
-		System.out.println("INDEX IS: " + index);
+		//System.out.println("INDEX IS: " + index);
 
 		if (index != -1)
 		{
-			// do a check for it being index only so that it doesn't recopy itself
 			// Move everything in blockList <= index left
 
 			int addressLeft = process_table[0].LIMIT;
@@ -485,8 +503,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 					//System.out.println(instruction);
 					//System.out.println("Diagnostic: after load");
 					// Store at free space
-					machine.memory.store(addressRight, instruction);
-					addressRight--;
+					machine.memory.store(addressRight--, instruction);
 				}
 				//System.out.println("Diagnostic: end of move right");
 			}
@@ -496,6 +513,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			return false;
 		}
 
+		// Create a new list to represent free spaces and add the appropriate free space
 		List<FreeSpace> newFreeSpaces = new ArrayList<>();
 		if ((blockList.get(blockList.size() - 1).LIMIT + blockList.get(blockList.size() - 1).BASE)
 				== Machine.MEMORY_SIZE)
@@ -509,9 +527,10 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 					.add(new FreeSpace(blockList.get(index).LIMIT + blockList.get(index).BASE, Machine.MEMORY_SIZE));
 		}
 
+		// Point freeSpaces at the new list
 		freeSpaces = newFreeSpaces;
 		//System.out.println("Diagnostic: Memory Compaction Ended");
-		diagnostics();
+		//diagnostics();
 		//System.out.println("Freespaces after memory compaction: " + freeSpaces);
 
 		// Attempt to expand in place

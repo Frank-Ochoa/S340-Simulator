@@ -26,7 +26,7 @@ public class Main
 		// create a program
 
 		// Sum of first 100 integers
-		ProgramBuilder b1 = new ProgramBuilder();
+		/*ProgramBuilder b1 = new ProgramBuilder();
 		int sum = 140;
 		int i = 160;
 
@@ -128,7 +128,7 @@ public class Main
 		b4.load(j2);
 		b4.addi(1);
 		b4.jmp(802);
-		b4.end();
+		b4.end();*/
 
 		/*Program p1 = b1.build();
 		Program p2 = b2.build();
@@ -181,63 +181,6 @@ public class Main
 
 		//os.schedule(toBeRan);
 
-		ProgramBuilder x1 = new ProgramBuilder();
-		x1.loadi(8);
-		x1.output();
-		x1.end();
-
-		ProgramBuilder x2 =  new ProgramBuilder();
-		x2.loadi(5);
-		x2.output();
-		x2.end();
-
-		ProgramBuilder x3 = new ProgramBuilder();
-		x3.loadi(2);
-		x3.loadi(3);
-		x3.loadi(4);
-		x3.loadi(5);
-		x3.loadi(4);
-		x3.syscall(0);
-		x3.output();
-		x3.end();
-
-		ProgramBuilder x4 = new ProgramBuilder();
-		x4.loadi(15);
-		x4.loadi(15);
-		x4.loadi(15);
-		x4.loadi(16);
-		x4.output();
-		x4.end();
-
-		ProgramBuilder x5 = new ProgramBuilder();
-		x5.loadi(15);
-		x5.loadi(15);
-		x5.loadi(15);
-		x5.loadi(15);
-		x5.loadi(15);
-		x5.loadi(15);
-		x5.loadi(15);
-		x5.loadi(15);
-		x5.loadi(15);
-		x5.loadi(15);
-		x5.loadi(15);
-		x5.loadi(15);
-		x5.loadi(15);
-		x5.loadi(15);
-		x5.loadi(15);
-		x5.loadi(15);
-		x5.loadi(15);
-		x5.loadi(15);
-
-
-
-		Program X1 = x1.build();
-		Program X2 = x2.build();
-		Program X3 = x3.build();
-		Program X4 = x4.build();
-
-		// X3, X1, X2, X4 for merging testing
-
 		ProgramBuilder mem1 = new ProgramBuilder();
 		// Size of 50
 		mem1.loadi(1);
@@ -274,7 +217,7 @@ public class Main
 		mem2.output();
 		mem2.end();
 
-		// Size of 100, also I'm an idiot for not using a for loop, although copy paste is pretty neat too
+		// I'm an idiot for not using a for loop, although copy paste is pretty neat too
 		ProgramBuilder mem3 = new ProgramBuilder();
 		mem3.loadi(30);
 		mem3.loadi(30);
@@ -334,8 +277,8 @@ public class Main
 		Program MEM2 = mem2.build();
 		Program MEM3 = mem3.build();
 
-		// Mem1-3 for Expanding in Place, Merging, and Mem Compaction
-		os.schedule(List.of(MEM2, MEM3, MEM1));
+		// Mem1-3 for Expanding in Place, Merging, and Mem Compaction (Left and Right)
+		//os.schedule(List.of(MEM2, MEM3, MEM1));
 
 
 		// Size of 10
@@ -359,6 +302,7 @@ public class Main
 		Program MOVE1 = move1.build();
 		Program MOVE2 = move2.build();
 
+		// MOVE1 & MOVE2 for testing moving a program
 		//os.schedule(List.of(MOVE1, MOVE2));
 
 		ProgramBuilder longProgram = new ProgramBuilder();
@@ -391,8 +335,9 @@ public class Main
 		Program SHORTPROGRAM = shortProgram.build();
 		Program SBRKCALLER = sbrkCaller.build();
 
-		// Does Moving, Expanding, Merging, and Memory Compaction
-		//os.schedule(List.of(SBRKCALLER, LONGPROGRAM, SHORTPROGRAM));
+		// LONGPROGRAM, SHORTPROGRAM, & SBRKCALLER Does Moving, Expanding, Merging, and Memory Compaction
+		// Also is what the SampleProgram_Comments&Pictures included PDF is depicting
+		os.schedule(List.of(SBRKCALLER, LONGPROGRAM, SHORTPROGRAM));
 
 	}
 
