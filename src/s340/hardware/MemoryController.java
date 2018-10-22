@@ -66,16 +66,4 @@ public class MemoryController
 		checkAddress(address);
 		memory[base + address] = value;
 	}
-
-	// Dunno if can add
-
-	public int getBase()
-	{
-		return base;
-	}
-
-	public int getLimit()
-	{
-		return limit;
-	}
 }

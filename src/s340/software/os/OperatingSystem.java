@@ -20,6 +20,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 {
 	// the machine on which we are running.
 	private final Machine machine;
+	private static final int PROCESS_TABLE_SIZE = 10;
 	private ProcessControlBlock[] process_table;
 	private int runningIndex;
 	private List<FreeSpace> freeSpaces;
@@ -31,7 +32,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 	{
 		this.machine = machine;
 		// Initialize an array of process control blocks with the size of 10
-		this.process_table = new ProcessControlBlock[10];
+		this.process_table = new ProcessControlBlock[PROCESS_TABLE_SIZE];
 		// Initialize the running index to 0
 		this.runningIndex = 0;
 		// Initial free space is entire block of memory until a process is loaded in
@@ -122,7 +123,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			int iFS = allocateFreeSpace(largestVirtualAddress);
 
 			loadProgram(program, iFS);
-			ProcessControlBlock x = new ProcessControlBlock(0, 0, 0, READY, freeSpaces.get(iFS).getSTART(),
+			ProcessControlBlock x = new ProcessControlBlock(0, freeSpaces.get(iFS).getSTART(),
 					largestVirtualAddress);
 
 			/*System.out.println("Program BASE is = " + freeSpaces.get(0).getSTART());

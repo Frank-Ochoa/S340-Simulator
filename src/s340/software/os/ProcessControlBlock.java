@@ -9,12 +9,12 @@ public class ProcessControlBlock implements Comparable<ProcessControlBlock>
 	int BASE;
 	int LIMIT;
 
-	public ProcessControlBlock(int acc, int x, int PC, ProcessState status, int BASE, int LIMIT)
+	public ProcessControlBlock(int PC, int BASE, int LIMIT)
 	{
-		this.Acc = acc;
-		this.X = x;
+		this.Acc = 0;
+		this.X = 0;
 		this.PC = PC;
-		this.Status = status;
+		this.Status = ProcessState.READY;
 		this.BASE = BASE;
 		this.LIMIT = LIMIT;
 	}
