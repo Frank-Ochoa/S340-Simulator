@@ -152,7 +152,7 @@ public class Main
 		// as no more programs with READY status exist in the process table.
 
 		/* Project 2 */
-		List<Program> toBeRan = new LinkedList<>();
+		/*List<Program> toBeRan = new LinkedList<>();
 
 		for(int p = 1; p <= 5; p++)
 		{
@@ -179,7 +179,7 @@ public class Main
 			toBeRan.add(px1);
 		}
 
-		//os.schedule(toBeRan);
+		os.schedule(toBeRan);
 
 		ProgramBuilder mem1 = new ProgramBuilder();
 		// Size of 50
@@ -337,8 +337,78 @@ public class Main
 
 		// LONGPROGRAM, SHORTPROGRAM, & SBRKCALLER Does Moving, Expanding, Merging, and Memory Compaction
 		// Also is what the SampleProgram_Comments&Pictures included PDF is depicting
-		os.schedule(List.of(SBRKCALLER, LONGPROGRAM, SHORTPROGRAM));
+		//os.schedule(List.of(SBRKCALLER, LONGPROGRAM, SHORTPROGRAM));*/
 
+		/* GROUP PROJECT 3 START */
+
+		ProgramBuilder p1 = new ProgramBuilder();
+		p1.size(12);
+		p1.loadi(1);
+		p1.store(40);
+		p1.store(41);
+		p1.store(42);
+		p1.store(43);
+		p1.store(44);
+		p1.load(40);
+		p1.syscall(1);
+		p1.load(41);
+		p1.syscall(1);
+		p1.load(42);
+		p1.syscall(1);
+		p1.load(43);
+		p1.syscall(1);
+		p1.load(44);
+		p1.syscall(1);
+		p1.end();
+
+		ProgramBuilder p2 = new ProgramBuilder();
+		p2.size(12);
+		p2.loadi(2);
+		p2.store(40);
+		p2.store(41);
+		p2.store(42);
+		p2.store(43);
+		p2.store(44);
+		p2.load(40);
+		p2.syscall(1);
+		p2.load(41);
+		p2.syscall(1);
+		p2.load(42);
+		p2.syscall(1);
+		p2.load(43);
+		p2.syscall(1);
+		p2.load(44);
+		p2.syscall(1);
+		p2.end();
+
+		ProgramBuilder p3 = new ProgramBuilder();
+		p3.size(12);
+		p3.loadi(3);
+		p3.store(40);
+		p3.store(41);
+		p3.store(42);
+		p3.store(43);
+		p3.store(44);
+		p3.load(40);
+		p3.syscall(1);
+		p3.load(41);
+		p3.syscall(1);
+		p3.load(42);
+		p3.syscall(1);
+		p3.load(43);
+		p3.syscall(1);
+		p3.load(44);
+		p3.syscall(1);
+		p3.end();
+
+		Program P1 = p1.build();
+		Program P2 = p2.build();
+		Program P3 = p3.build();
+
+		System.out.println(P1);
+
+
+		os.schedule(List.of(P1, P2, P3));
 	}
 
 }

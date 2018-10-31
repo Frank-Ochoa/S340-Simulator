@@ -40,6 +40,7 @@ public class MemoryController
 	 */
 	private void checkAddress(int virtualAdress) throws MemoryAddressException
 	{
+		//System.out.println(virtualAdress);
 		if (virtualAdress < 0 || virtualAdress >= limit)
 		{
 			throw new MemoryAddressException(virtualAdress);

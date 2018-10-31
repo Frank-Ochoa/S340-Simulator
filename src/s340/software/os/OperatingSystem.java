@@ -3,10 +3,7 @@ package s340.software.os;
 import s340.hardware.*;
 import s340.hardware.exception.MemoryFault;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import static s340.software.os.ProcessState.*;
 
@@ -18,12 +15,14 @@ import static s340.software.os.ProcessState.*;
  */
 public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, ITrapHandler
 {
+	private static final int PROCESS_TABLE_SIZE = 10;
 	// the machine on which we are running.
 	private final Machine machine;
-	private static final int PROCESS_TABLE_SIZE = 10;
 	private ProcessControlBlock[] process_table;
 	private int runningIndex;
 	private List<FreeSpace> freeSpaces;
+	private Queue<IORequest>[] waitQueues;
+	private ICallables[] startDeviceMethods;
 
 	/*
 	 * Create an operating system on the given machine.
@@ -38,6 +37,21 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		// Initial free space is entire block of memory until a process is loaded in
 		this.freeSpaces = new ArrayList<>();
 		freeSpaces.add(new FreeSpace(0, Machine.MEMORY_SIZE));
+		this.waitQueues = new Queue[Machine.NUM_DEVICES];
+		for (int i = 0; i < waitQueues.length; i++)
+		{
+			waitQueues[i] = new LinkedList<>();
+		}
+
+		this.startDeviceMethods = new ICallables[Machine.NUM_DEVICES];
+		startDeviceMethods[Machine.CONSOLE] = (theMachine) -> {
+			IORequest request = waitQueues[Machine.CONSOLE].peek();
+
+			DeviceControlRegister controlRegister = theMachine.controlRegisters[Machine.CONSOLE];
+			controlRegister.register[0] = request.getOperations();
+			controlRegister.register[1] = request.getSourceProcess().Acc;
+			controlRegister.latch();
+		};
 
 		// Create a wait process that continually jumps to itself
 		ProgramBuilder pb = new ProgramBuilder();
@@ -123,8 +137,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			int iFS = allocateFreeSpace(largestVirtualAddress);
 
 			loadProgram(program, iFS);
-			ProcessControlBlock x = new ProcessControlBlock(0, freeSpaces.get(iFS).getSTART(),
-					largestVirtualAddress);
+			ProcessControlBlock x = new ProcessControlBlock(0, freeSpaces.get(iFS).getSTART(), largestVirtualAddress);
 
 			/*System.out.println("Program BASE is = " + freeSpaces.get(0).getSTART());
 			System.out.println("Program LIMIT is = " + (x.LIMIT));
@@ -219,6 +232,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 		// Choose the next process to be run
 		ProcessControlBlock next = chooseNextProcess();
+		//System.out.println(next);
 		// Set the status of that process control block to RUNNING
 		next.Status = RUNNING;
 		// Restore registers for that process control block and jump to it
@@ -255,6 +269,15 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				sbrk(process_table[runningIndex].Acc);
 				diagnostics();
 				break;
+			case SystemCall.WRITE_TO_CONSOLE:
+				writeToConsole();
+				// Sys call ended and process at running index is now asleep, choose another to run
+				ProcessControlBlock next = chooseNextProcess();
+				// Status is now RUNNING
+				next.Status = RUNNING;
+				// Jump to said process
+				loadRegisters(next);
+				break;
 			default:
 				System.err.println("UNHANDLED SYSCALL " + callNumber);
 				System.exit(1);
@@ -280,9 +303,27 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			return;
 		}
 		//  end of code to leave
-	}
 
-	// Project 2 scratch work
+		// Clear ICR
+		this.machine.interruptRegisters.register[deviceNumber] = false;
+		// Save Registers
+		saveRegisters(savedProgramCounter);
+
+		// Set Process that finished its IO back to READY
+		waitQueues[deviceNumber].peek().getSourceProcess().Status = READY;
+		// Dequeue it
+		waitQueues[deviceNumber].remove();
+
+		// If queue is not empty, start the next IO
+		if (!waitQueues[deviceNumber].isEmpty())
+		{
+			startDeviceMethods[Machine.CONSOLE].startDevice(this.machine);
+		}
+
+		// Restore registers for that process control block and jump to it
+		loadRegisters(process_table[runningIndex]);
+
+	}
 
 	private int allocateFreeSpace(int size)
 	{
@@ -388,7 +429,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		boolean didMerge = false;
 
 		// If freeSpaces is not empty
-		if(!freeSpaces.isEmpty())
+		if (!freeSpaces.isEmpty())
 		{
 			// Sort the free spaces
 			Collections.sort(freeSpaces);
@@ -614,4 +655,20 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		System.out.print(s);
 
 	}
+
+	private void writeToConsole()
+	{
+		// Create an IORequest, add it to the Queue
+		IORequest request = new IORequest(DeviceControllerOperations.WRITE, process_table[runningIndex]);
+		waitQueues[Machine.CONSOLE].add(request);
+		request.getSourceProcess().Status = WAITING;
+
+		// If the added request is the only one in the Queue, start the IO
+		if (waitQueues[Machine.CONSOLE].size() == 1)
+		{
+			startDeviceMethods[Machine.CONSOLE].startDevice(this.machine);
+		}
+
+	}
+
 }

@@ -1,3 +1,3 @@
 package s340.software.os;
 
-public enum ProcessState {READY, RUNNING, END}
+public enum ProcessState {READY, RUNNING, END, WAITING}
