@@ -7,5 +7,5 @@ public interface ICallables
 {
 	void startDevice(Machine theMachine) throws MemoryFault;
 
-	void interruptPostProcessing(Machine theMachine, ProcessControlBlock finishedProcess) throws MemoryFault;
+	void interruptPostProcessing(Machine theMachine, IORequest finishedProcess) throws MemoryFault;
 }

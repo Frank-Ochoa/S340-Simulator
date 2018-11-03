@@ -408,7 +408,14 @@ public class Main
 		System.out.println(P1);
 
 
-		os.schedule(List.of(P1, P2, P3));
+		//os.schedule(List.of(P1, P2, P3));
+
+		ProgramBuilder testD1 = new ProgramBuilder();
+		for(int i = 1; i <= 20; i++)
+		{
+			testD1.loadi(i);
+			testD1.store(80 + i);
+		}
 	}
 
 }
