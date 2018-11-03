@@ -79,7 +79,7 @@ public class CPU implements Runnable
     /*
 	 * Poll the hardware for interrupts.
      */
-    private void pollForInterrupts()
+    private void pollForInterrupts() throws MemoryFault
     {
         for (int i = 0; i < interruptRegisters.register.length; i++)
         {
@@ -115,7 +115,7 @@ public class CPU implements Runnable
     /*
 	 * Switch to system mode and perform an interrupt.
      */
-    private void interrupt(int trapNumber)
+    private void interrupt(int trapNumber) throws MemoryFault
     {
         interruptHandler.interrupt(pc, trapNumber);
     }

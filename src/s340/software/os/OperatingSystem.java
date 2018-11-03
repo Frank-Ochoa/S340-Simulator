@@ -44,13 +44,66 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		}
 
 		this.startDeviceMethods = new ICallables[Machine.NUM_DEVICES];
-		startDeviceMethods[Machine.CONSOLE] = (theMachine) -> {
-			IORequest request = waitQueues[Machine.CONSOLE].peek();
+		startDeviceMethods[Machine.CONSOLE] = new ICallables()
+		{
+			@Override public void startDevice(Machine theMachine) throws MemoryFault
+			{
+				IORequest request = waitQueues[Machine.CONSOLE].peek();
 
-			DeviceControlRegister controlRegister = theMachine.controlRegisters[Machine.CONSOLE];
-			controlRegister.register[0] = request.getOperations();
-			controlRegister.register[1] = request.getSourceProcess().Acc;
-			controlRegister.latch();
+				DeviceControlRegister controlRegister = theMachine.controlRegisters[Machine.CONSOLE];
+				controlRegister.register[0] = request.getOperations();
+				controlRegister.register[1] = request.getSourceProcess().Acc;
+				controlRegister.latch();
+			}
+
+			@Override public void interruptPostProcessing(Machine theMachine, ProcessControlBlock finishedProcess)
+					throws MemoryFault
+			{
+
+			}
+
+		};
+		startDeviceMethods[Machine.DISK1] = new ICallables()
+		{
+			@Override public void startDevice(Machine theMachine) throws MemoryFault
+			{
+				theMachine.memory.setBase(0);
+				theMachine.memory.setLimit(Machine.MEMORY_SIZE);
+
+				IORequest request = waitQueues[Machine.DISK1].peek();
+
+				DeviceControlRegister controlRegister = theMachine.controlRegisters[Machine.DISK1];
+				controlRegister.register[0] = request.getOperations();
+
+				// Uneeded but making explicit at the start
+				int storedLocation = (request.getSourceProcess().Acc) + (request.getSourceProcess().BASE);
+				int platterSize = machine.memory.load(storedLocation++);
+				int start = machine.memory.load(storedLocation++);
+				int length = machine.memory.load(storedLocation);
+
+				controlRegister.register[1] = platterSize;
+				controlRegister.register[2] = start;
+				controlRegister.register[3] = length;
+
+
+				controlRegister.latch();
+			}
+
+			@Override public void interruptPostProcessing(Machine theMachine, ProcessControlBlock finishedProcess)
+					throws MemoryFault
+			{
+				theMachine.memory.setBase(0);
+				theMachine.memory.setLimit(Machine.MEMORY_SIZE);
+
+				// Get the start location of where you will be storing in memory
+				int startStoreLocation = theMachine.memory.load(finishedProcess.Acc + 4);
+
+				for(int x : theMachine.devices[Machine.DISK1].buffer)
+				{
+					theMachine.memory.store(startStoreLocation++, x);
+				}
+			}
+
 		};
 
 		// Create a wait process that continually jumps to itself
@@ -262,6 +315,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 		saveRegisters(savedProgramCounter);
 
+		// Make these make IORequests and q them, and start device
 		switch (callNumber)
 		{
 			case SystemCall.REQUEST_MORE_MEMORY:
@@ -270,13 +324,31 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				diagnostics();
 				break;
 			case SystemCall.WRITE_TO_CONSOLE:
-				writeToConsole();
-				// Sys call ended and process at running index is now asleep, choose another to run
-				ProcessControlBlock next = chooseNextProcess();
-				// Status is now RUNNING
-				next.Status = RUNNING;
-				// Jump to said process
-				loadRegisters(next);
+				IORequest requestConsole = new IORequest(DeviceControllerOperations.WRITE, process_table[runningIndex]);
+				waitQueues[Machine.CONSOLE].add(requestConsole);
+				requestConsole.getSourceProcess().Status = WAITING;
+
+				// If the added request is the only one in the Queue, start the IO
+				if (waitQueues[Machine.CONSOLE].size() == 1)
+				{
+					startDeviceMethods[Machine.CONSOLE].startDevice(this.machine);
+				}
+
+				chooseAndJumpNextProcess();
+				break;
+			case SystemCall.READ_FROM_DISK:
+				IORequest requestDisk = new IORequest(DeviceControllerOperations.READ, process_table[runningIndex]);
+				waitQueues[Machine.DISK1].add(requestDisk);
+				requestDisk.getSourceProcess().Status = WAITING;
+
+				if (waitQueues[Machine.CONSOLE].size() == 1)
+				{
+					startDeviceMethods[Machine.CONSOLE].startDevice(this.machine);
+				}
+
+				chooseAndJumpNextProcess();
+				break;
+			case SystemCall.WRITE_TO_DISK:
 				break;
 			default:
 				System.err.println("UNHANDLED SYSCALL " + callNumber);
@@ -294,7 +366,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 	 *
 	 * @param deviceNumber -- the device number that is interrupting.
 	 */
-	@Override public synchronized void interrupt(int savedProgramCounter, int deviceNumber)
+	@Override public synchronized void interrupt(int savedProgramCounter, int deviceNumber) throws MemoryFault
 	{
 		//  leave this code here
 		CheckValid.deviceNumber(deviceNumber);
@@ -310,17 +382,21 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		saveRegisters(savedProgramCounter);
 
 		// Set Process that finished its IO back to READY
-		waitQueues[deviceNumber].peek().getSourceProcess().Status = READY;
+		ProcessControlBlock finishedProcess = waitQueues[deviceNumber].peek().getSourceProcess();
+		finishedProcess.Status = READY;
 		// Dequeue it
 		waitQueues[deviceNumber].remove();
 
 		// If queue is not empty, start the next IO
 		if (!waitQueues[deviceNumber].isEmpty())
 		{
-			startDeviceMethods[Machine.CONSOLE].startDevice(this.machine);
+			startDeviceMethods[deviceNumber].startDevice(this.machine);
 		}
 
-		// Restore registers for that process control block and jump to it
+		startDeviceMethods[deviceNumber].interruptPostProcessing(this.machine, finishedProcess);
+
+
+		// Restore registers and jump back to running process
 		loadRegisters(process_table[runningIndex]);
 
 	}
@@ -656,7 +732,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 	}
 
-	private void writeToConsole()
+	private void writeToConsole() throws MemoryFault
 	{
 		// Create an IORequest, add it to the Queue
 		IORequest request = new IORequest(DeviceControllerOperations.WRITE, process_table[runningIndex]);
@@ -671,4 +747,23 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 	}
 
+	// load where programmer says
+	private void readFromDisk() throws MemoryFault
+	{
+		IORequest request = new IORequest(DeviceControllerOperations.READ, process_table[runningIndex]);
+		waitQueues[Machine.DISK1].add(request);
+		request.getSourceProcess().Status = WAITING;
+
+		if (waitQueues[Machine.CONSOLE].size() == 1)
+		{
+			startDeviceMethods[Machine.CONSOLE].startDevice(this.machine);
+		}
+	}
+
+	private void chooseAndJumpNextProcess()
+	{
+		ProcessControlBlock next = chooseNextProcess();
+		next.Status = RUNNING;
+		loadRegisters(next);
+	}
 }
