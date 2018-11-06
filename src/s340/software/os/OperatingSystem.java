@@ -46,11 +46,11 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		this.startDeviceMethods = new ICallables[Machine.NUM_DEVICES];
 		startDeviceMethods[Machine.CONSOLE] = new ICallables()
 		{
-			@Override public void startDevice(Machine theMachine) throws MemoryFault
+			@Override public void startDevice(Machine theMachine, int deviceNumber) throws MemoryFault
 			{
-				IORequest request = waitQueues[Machine.CONSOLE].peek();
+				IORequest request = waitQueues[deviceNumber].peek();
 
-				DeviceControlRegister controlRegister = theMachine.controlRegisters[Machine.CONSOLE];
+				DeviceControlRegister controlRegister = theMachine.controlRegisters[deviceNumber];
 				controlRegister.register[0] = request.getOperations();
 				controlRegister.register[1] = request.getSourceProcess().Acc;
 				controlRegister.latch();
@@ -65,22 +65,24 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		};
 		startDeviceMethods[Machine.DISK1] = new ICallables()
 		{
-			@Override public void startDevice(Machine theMachine) throws MemoryFault
+			@Override public void startDevice(Machine theMachine, int deviceNumber) throws MemoryFault
 			{
 				theMachine.memory.setBase(0);
 				theMachine.memory.setLimit(Machine.MEMORY_SIZE);
 
-				IORequest request = waitQueues[Machine.DISK1].peek();
+				// Need to use generic device number
+				IORequest request = waitQueues[deviceNumber].peek();
 
 				DeviceControlRegister controlRegister = theMachine.controlRegisters[Machine.DISK1];
 				controlRegister.register[0] = request.getOperations();
 
 				// Uneeded but making explicit at the start
 				int storedLocation = (request.getSourceProcess().Acc) + (request.getSourceProcess().BASE);
+				storedLocation++;
 				int platterSize = theMachine.memory.load(storedLocation++);
 				int start = theMachine.memory.load(storedLocation++);
 				int length = theMachine.memory.load(storedLocation++);
-				int startLoadLocation = theMachine.memory.load(storedLocation);
+				int startLoadLocation = theMachine.memory.load(storedLocation) + (request.getSourceProcess().BASE);
 
 				controlRegister.register[1] = platterSize;
 				controlRegister.register[2] = start;
@@ -89,11 +91,14 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				if (request.getOperations() == DeviceControllerOperations.WRITE)
 				{
 					int address = 0;
-					for (int i = startLoadLocation; i < length; i++)
+					for (int i = startLoadLocation; i < startLoadLocation + length; i++)
 					{
 						int instruction = theMachine.memory.load(i);
-						theMachine.devices[Machine.DISK1].buffer[address++] = instruction;
+						//System.out.println("DEVICE NUMBER IS = " + deviceNumber);
+						theMachine.devices[deviceNumber].buffer[address++] = instruction;
 					}
+
+					System.out.println(Arrays.toString(theMachine.devices[deviceNumber].buffer));
 
 				}
 
@@ -107,14 +112,21 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				theMachine.memory.setLimit(Machine.MEMORY_SIZE);
 
 				// Get the start location of where you will be storing in memory
-				int startStoreLocation = theMachine.memory.load(finishedProcess.getSourceProcess().Acc + 4);
+				int startStoreLocation = theMachine.memory
+						.load((finishedProcess.getSourceProcess().Acc + finishedProcess.getSourceProcess().BASE) + 4);
+				startStoreLocation += finishedProcess.getSourceProcess().BASE;
+
+				int deviceNumber = theMachine.memory
+						.load(finishedProcess.getSourceProcess().Acc + finishedProcess.getSourceProcess().BASE);
+				int length = theMachine.memory
+						.load((finishedProcess.getSourceProcess().Acc + finishedProcess.getSourceProcess().BASE) + 3);
 
 				if (finishedProcess.getOperations() == DeviceControllerOperations.READ)
 				{
 
-					for (int x : theMachine.devices[Machine.DISK1].buffer)
+					for(int i = 0; i < length; i++)
 					{
-						theMachine.memory.store(startStoreLocation++, x);
+						theMachine.memory.store(startStoreLocation++, theMachine.devices[deviceNumber].buffer[i]);
 					}
 
 				}
@@ -290,7 +302,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			case Trap.DIV_ZERO:
 				process_table[runningIndex].Status = END;
 				freeSpaces.add(new FreeSpace(process_table[runningIndex].BASE,
-											 process_table[runningIndex].BASE + process_table[runningIndex].LIMIT));
+						process_table[runningIndex].BASE + process_table[runningIndex].LIMIT));
 				System.out.println("Program ended, added a space" + freeSpaces);
 				mergedSpaces();
 				break;
@@ -340,31 +352,16 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				diagnostics();
 				break;
 			case SystemCall.WRITE_TO_CONSOLE:
-				IORequest requestConsole = new IORequest(DeviceControllerOperations.WRITE, process_table[runningIndex]);
-				waitQueues[Machine.CONSOLE].add(requestConsole);
-				requestConsole.getSourceProcess().Status = WAITING;
-
-				// If the added request is the only one in the Queue, start the IO
-				if (waitQueues[Machine.CONSOLE].size() == 1)
-				{
-					startDeviceMethods[Machine.CONSOLE].startDevice(this.machine);
-				}
-
+				queueOrStartIO(Machine.CONSOLE);
 				chooseAndJumpNextProcess();
 				break;
 			case SystemCall.READ_FROM_DISK:
-				IORequest requestDisk = new IORequest(DeviceControllerOperations.READ, process_table[runningIndex]);
-				waitQueues[Machine.DISK1].add(requestDisk);
-				requestDisk.getSourceProcess().Status = WAITING;
-
-				if (waitQueues[Machine.CONSOLE].size() == 1)
-				{
-					startDeviceMethods[Machine.CONSOLE].startDevice(this.machine);
-				}
-
+				queueOrStartIO(this.machine.memory.load(process_table[runningIndex].Acc));
 				chooseAndJumpNextProcess();
 				break;
 			case SystemCall.WRITE_TO_DISK:
+				queueOrStartIO(this.machine.memory.load(process_table[runningIndex].Acc));
+				chooseAndJumpNextProcess();
 				break;
 			default:
 				System.err.println("UNHANDLED SYSCALL " + callNumber);
@@ -398,18 +395,18 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		saveRegisters(savedProgramCounter);
 
 		// Set Process that finished its IO back to READY
-		IORequest finishedProcess = waitQueues[deviceNumber].peek();
+		IORequest finishedProcess = waitQueues[deviceNumber].remove();
 		finishedProcess.getSourceProcess().Status = READY;
 		// Dequeue it
-		waitQueues[deviceNumber].remove();
+
+		// Do Post Processing when appropriate
+		startDeviceMethods[deviceNumber].interruptPostProcessing(this.machine, finishedProcess);
 
 		// If queue is not empty, start the next IO
 		if (!waitQueues[deviceNumber].isEmpty())
 		{
-			startDeviceMethods[deviceNumber].startDevice(this.machine);
+			startDeviceMethods[deviceNumber].startDevice(this.machine, deviceNumber);
 		}
-
-		startDeviceMethods[deviceNumber].interruptPostProcessing(this.machine, finishedProcess);
 
 		// Restore registers and jump back to running process
 		loadRegisters(process_table[runningIndex]);
@@ -652,7 +649,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				== Machine.MEMORY_SIZE)
 		{
 			newFreeSpaces.add(new FreeSpace(blockList.get(index).LIMIT + blockList.get(index).BASE,
-											blockList.get(index + 1).BASE));
+					blockList.get(index + 1).BASE));
 		}
 		else
 		{
@@ -752,5 +749,18 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		ProcessControlBlock next = chooseNextProcess();
 		next.Status = RUNNING;
 		loadRegisters(next);
+	}
+
+	private void queueOrStartIO(int deviceNumber) throws MemoryFault
+	{
+		IORequest request = new IORequest(DeviceControllerOperations.READ, process_table[runningIndex]);
+		waitQueues[deviceNumber].add(request);
+		request.getSourceProcess().Status = WAITING;
+
+		if (waitQueues[deviceNumber].size() == 1)
+		{
+			startDeviceMethods[deviceNumber].startDevice(this.machine, deviceNumber);
+		}
+
 	}
 }

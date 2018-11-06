@@ -405,17 +405,76 @@ public class Main
 		Program P2 = p2.build();
 		Program P3 = p3.build();
 
-		System.out.println(P1);
+		//System.out.println(P1);
 
 
 		//os.schedule(List.of(P1, P2, P3));
 
 		ProgramBuilder testD1 = new ProgramBuilder();
+		testD1.size(2000);
 		for(int i = 1; i <= 20; i++)
 		{
 			testD1.loadi(i);
-			testD1.store(80 + i);
+			testD1.store(245 + i);
 		}
+		// Write
+		// Device #
+		testD1.loadi(2);
+		testD1.store(400);
+		// Platter #
+		testD1.loadi(3);
+		testD1.store(401);
+		// Start on platter to write to
+		testD1.loadi(31);
+		testD1.store(402);
+		// Length on platter to write
+		testD1.loadi(20);
+		testD1.store(403);
+		// Mem in location to write from
+		testD1.loadi(246);
+		testD1.store(404);
+		// Load Acc with mem address
+		testD1.loadi(400);
+		// Call DISK WRITE
+		testD1.syscall(3);
+		// READ
+		// DEVICE #
+		testD1.loadi(2);
+		testD1.store(405);
+		// PLATTER #
+		testD1.loadi(3);
+		testD1.store(406);
+		// WHERE ON PLATTER TO START READ FROM
+		testD1.loadi(31);
+		testD1.store(407);
+		// LENGTH ON PLATTER TO READ
+		testD1.loadi(20);
+		testD1.store(408);
+		// LOCATION IN MEM TO WRITE TO
+		testD1.loadi(301);
+		testD1.store(409);
+		// LOAD ACC WITH MEM LOCATION
+		testD1.loadi(405);
+		// CALL READ
+		testD1.syscall(2);
+		// OUT WITH WRITE CONSOLE
+		for(int b = 301; b <= 320; b++)
+		{
+			testD1.load(b);
+			testD1.syscall(1);
+		}
+		testD1.end();
+
+
+		Program TESTD1 = testD1.build();
+
+
+		System.out.println(TESTD1);
+
+		os.schedule(List.of(TESTD1));
+
+
+
 	}
 
 }
