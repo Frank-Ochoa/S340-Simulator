@@ -24,6 +24,10 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 	private Queue<IORequest>[] waitQueues;
 	private ICallables[] deviceMethods;
 
+	private int headLocationDISK1;
+
+
+
 	/*
 	 * Create an operating system on the given machine.
 	 */
@@ -70,8 +74,13 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				theMachine.memory.setBase(0);
 				theMachine.memory.setLimit(Machine.MEMORY_SIZE);
 
+				// Pass in IORequest to start device method
 				// Need to use generic device number
+				// Possibly replace this with the SFTS algoritm, b/c this is just what is selecting the next thing to do
+				// and instead of first come first serve do the SFTS
 				IORequest request = waitQueues[deviceNumber].peek();
+
+				Iterator<IORequest> it;
 
 				DeviceControlRegister controlRegister = theMachine.controlRegisters[Machine.DISK1];
 				controlRegister.register[0] = request.getOperations();
@@ -135,6 +144,8 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			}
 
 		};
+
+		this.headLocationDISK1 = 0;
 
 		// Create a wait process that continually jumps to itself
 		ProgramBuilder pb = new ProgramBuilder();
@@ -392,6 +403,8 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			return;
 		}
 		//  end of code to leave
+
+		// Need to update head in here?
 
 		// Clear ICR
 		this.machine.interruptRegisters.register[deviceNumber] = false;
