@@ -21,12 +21,8 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 	private ProcessControlBlock[] process_table;
 	private int runningIndex;
 	private List<FreeSpace> freeSpaces;
-	private Queue<IORequest>[] waitQueues;
+	private Deque<IORequest>[] waitQueues;
 	private ICallables[] deviceMethods;
-
-	private int headLocationDISK1;
-
-
 
 	/*
 	 * Create an operating system on the given machine.
@@ -41,7 +37,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		// Initial free space is entire block of memory until a process is loaded in
 		this.freeSpaces = new ArrayList<>();
 		freeSpaces.add(new FreeSpace(0, Machine.MEMORY_SIZE));
-		this.waitQueues = new Queue[Machine.NUM_DEVICES];
+		this.waitQueues = new Deque[Machine.NUM_DEVICES];
 		for (int i = 0; i < waitQueues.length; i++)
 		{
 			waitQueues[i] = new LinkedList<>();
@@ -50,10 +46,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		this.deviceMethods = new ICallables[Machine.NUM_DEVICES];
 		deviceMethods[Machine.CONSOLE] = new ICallables()
 		{
-			@Override public void startDevice(Machine theMachine, int deviceNumber) throws MemoryFault
+			@Override public void startDevice(Machine theMachine, int deviceNumber, IORequest request)
+					throws MemoryFault
 			{
-				IORequest request = waitQueues[deviceNumber].peek();
-
 				DeviceControlRegister controlRegister = theMachine.controlRegisters[deviceNumber];
 				controlRegister.register[0] = request.getOperations();
 				controlRegister.register[1] = request.getSourceProcess().Acc;
@@ -69,7 +64,8 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		};
 		deviceMethods[Machine.DISK1] = new ICallables()
 		{
-			@Override public void startDevice(Machine theMachine, int deviceNumber) throws MemoryFault
+			@Override public void startDevice(Machine theMachine, int deviceNumber, IORequest request)
+					throws MemoryFault
 			{
 				theMachine.memory.setBase(0);
 				theMachine.memory.setLimit(Machine.MEMORY_SIZE);
@@ -78,9 +74,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				// Need to use generic device number
 				// Possibly replace this with the SFTS algoritm, b/c this is just what is selecting the next thing to do
 				// and instead of first come first serve do the SFTS
-				IORequest request = waitQueues[deviceNumber].peek();
-
-				Iterator<IORequest> it;
+				//IORequest request = waitQueues[deviceNumber].peek();
 
 				DeviceControlRegister controlRegister = theMachine.controlRegisters[Machine.DISK1];
 				controlRegister.register[0] = request.getOperations();
@@ -90,7 +84,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				// To Skip device #
 				storedLocation++;
 				int platterSize = theMachine.memory.load(storedLocation++);
+				// Need this for SFTS
 				int start = theMachine.memory.load(storedLocation++);
+				// Need this for SFTS
 				int length = theMachine.memory.load(storedLocation++);
 				int startLoadLocation = theMachine.memory.load(storedLocation) + (request.getSourceProcess().BASE);
 
@@ -144,8 +140,6 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			}
 
 		};
-
-		this.headLocationDISK1 = 0;
 
 		// Create a wait process that continually jumps to itself
 		ProgramBuilder pb = new ProgramBuilder();
@@ -422,12 +416,59 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		// If queue is not empty, start the next IO
 		if (!waitQueues[deviceNumber].isEmpty())
 		{
-			deviceMethods[deviceNumber].startDevice(this.machine, deviceNumber);
+			// Only do below if the device is a disk
+			if(deviceNumber == Machine.DISK1 || deviceNumber == Machine.DISK2)
+			{
+				this.machine.memory.setBase(0);
+				this.machine.memory.setLimit(Machine.MEMORY_SIZE);
+
+				int storedLocation = (finishedProcess.getSourceProcess().Acc) + (finishedProcess.getSourceProcess().BASE);
+				int start = this.machine.memory.load(storedLocation + 2);
+				int length = this.machine.memory.load(storedLocation + 3);
+				int headLocation = start + length;
+
+				IORequest chosenRequest = null;
+
+				int min = Integer.MAX_VALUE;
+				for (IORequest nextRequest : waitQueues[deviceNumber])
+				{
+					int nextStoredLocation = (nextRequest.getSourceProcess().Acc) + (nextRequest.getSourceProcess().BASE);
+					int nextHeadLocation = this.machine.memory.load(nextStoredLocation + 2);
+
+					if (min > Math.abs(nextHeadLocation - headLocation))
+					{
+						min = Math.abs(nextHeadLocation - headLocation);
+						chosenRequest = nextRequest;
+					}
+
+				}
+
+				// Remove from queue and put it back on the head
+				// Scan the Q for the chosenRequest, remove it, then add it back to the head of the Q
+				Iterator<IORequest> it = waitQueues[deviceNumber].iterator();
+				while (it.hasNext())
+				{
+					IORequest request = it.next();
+
+					if (it.next().equals(chosenRequest))
+					{
+						it.remove();
+						waitQueues[deviceNumber].addFirst(request);
+						break;
+					}
+				}
+
+				deviceMethods[deviceNumber].startDevice(this.machine, deviceNumber, chosenRequest);
+			}
+			else
+			{
+				deviceMethods[deviceNumber].startDevice(this.machine, deviceNumber, waitQueues[deviceNumber].peek());
+			}
+
+			// Restore registers and jump back to running process
+			loadRegisters(process_table[runningIndex]);
+
 		}
-
-		// Restore registers and jump back to running process
-		loadRegisters(process_table[runningIndex]);
-
 	}
 
 	private int allocateFreeSpace(int size)
@@ -776,8 +817,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 		if (waitQueues[deviceNumber].size() == 1)
 		{
-			deviceMethods[deviceNumber].startDevice(this.machine, deviceNumber);
+			deviceMethods[deviceNumber].startDevice(this.machine, deviceNumber, waitQueues[deviceNumber].peek());
 		}
 
 	}
 }
+
