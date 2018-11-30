@@ -471,9 +471,9 @@ public class Main
 
 		//System.out.println(TESTD1);
 
-		os.schedule(List.of(TESTD1));
+		//os.schedule(List.of(TESTD1));
 
-		/*ProgramBuilder dskSch = new ProgramBuilder();
+		ProgramBuilder dskSch = new ProgramBuilder();
 		dskSch.size(2000);
 
 		for(int i = 1; i <= 100; i++)
@@ -620,8 +620,7 @@ public class Main
 		Program DSKSCH = dskSch.build();
 
 		System.out.println(DSKSCH);
-*/
-		//os.schedule(List.of(DSKSCH));
+		os.schedule(List.of(DSKSCH));
 	}
 
 }

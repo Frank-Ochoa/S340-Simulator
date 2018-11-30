@@ -423,7 +423,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				System.exit(1);
 		}
 
-		//diagnostics();
+		diagnostics();
 
 		loadRegisters(process_table[runningIndex]);
 	}
