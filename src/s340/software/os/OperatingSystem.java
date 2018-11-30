@@ -407,7 +407,6 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			case SystemCall.WRITE_TO_CONSOLE:
 				queueOrStartIO(DeviceControllerOperations.WRITE, Machine.CONSOLE);
 				chooseAndJumpNextProcess();
-				diagnostics();
 				break;
 			case SystemCall.READ_FROM_DISK:
 				queueOrStartIO(DeviceControllerOperations.READ,
@@ -424,7 +423,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				System.exit(1);
 		}
 
-		diagnostics();
+		//diagnostics();
 
 		loadRegisters(process_table[runningIndex]);
 	}
@@ -469,7 +468,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			deviceMethods[deviceNumber].startDevice(this.machine, nextRequest);
 		}
 
-		//diagnostics();
+		diagnostics();
 		// Restore registers and jump back to running process
 		loadRegisters(process_table[runningIndex]);
 	}

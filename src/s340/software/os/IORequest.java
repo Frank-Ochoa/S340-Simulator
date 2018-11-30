@@ -24,6 +24,6 @@ public class IORequest
 
 	@Override public String toString()
 	{
-		return "IORequest{" + "operations=" + operations + ", sourceProcess=" + sourceProcess + '}';
+		return "IORequest{" + "operations =" + operations + ", sourceProcess =" + sourceProcess + '}';
 	}
 }

@@ -469,12 +469,159 @@ public class Main
 		Program TESTD1 = testD1.build();
 
 
-		System.out.println(TESTD1);
+		//System.out.println(TESTD1);
 
 		os.schedule(List.of(TESTD1));
 
+		/*ProgramBuilder dskSch = new ProgramBuilder();
+		dskSch.size(2000);
+
+		for(int i = 1; i <= 100; i++)
+		{
+			dskSch.loadi(i);
+			dskSch.store(1000 + i);
+		}
+
+		// Write 1 - 50
+		// Device #
+		dskSch.loadi(2);
+		dskSch.store(800);
+		// Platter #
+		dskSch.loadi(3);
+		dskSch.store(801);
+		// Start on platter to write to
+		dskSch.loadi(0);
+		dskSch.store(802);
+		// Length on platter to write
+		dskSch.loadi(50);
+		dskSch.store(803);
+		// Mem in location to write from
+		dskSch.loadi(1001);
+		dskSch.store(804);
+		// Load Acc with mem address
+		dskSch.loadi(800);
+		// Call DISK WRITE
+		dskSch.syscall(3);
+
+		// Write 51 - 100
+		// Device #
+		dskSch.loadi(2);
+		dskSch.store(805);
+		// Platter #
+		dskSch.loadi(3);
+		dskSch.store(806);
+		// Start on platter to write to
+		dskSch.loadi(50);
+		dskSch.store(807);
+		// Length on platter to write
+		dskSch.loadi(50);
+		dskSch.store(808);
+		// Mem in location to write from
+		dskSch.loadi(1051);
+		dskSch.store(809);
+		// Load Acc with mem address
+		dskSch.loadi(805);
+		// Call DISK WRITE
+		dskSch.syscall(3);
+
+		// READ 3 - 6
+		// DEVICE #
+		dskSch.loadi(2);
+		dskSch.store(810);
+		// PLATTER #
+		dskSch.loadi(3);
+		dskSch.store(811);
+		// WHERE ON PLATTER TO START READ FROM
+		dskSch.loadi(2);
+		dskSch.store(812);
+		// LENGTH ON PLATTER TO READ
+		dskSch.loadi(4);
+		dskSch.store(813);
+		// LOCATION IN MEM TO WRITE TO
+		dskSch.loadi(1500);
+		dskSch.store(814);
+		// LOAD ACC WITH MEM LOCATION
+		dskSch.loadi(810);
+		// CALL READ
+		dskSch.syscall(2);
+
+		// READ 1 - 2
+		// DEVICE #
+		dskSch.loadi(2);
+		dskSch.store(815);
+		// PLATTER #
+		dskSch.loadi(3);
+		dskSch.store(816);
+		// WHERE ON PLATTER TO START READ FROM
+		dskSch.loadi(0);
+		dskSch.store(817);
+		// LENGTH ON PLATTER TO READ
+		dskSch.loadi(2);
+		dskSch.store(818);
+		// LOCATION IN MEM TO WRITE TO
+		dskSch.loadi(1504);
+		dskSch.store(819);
+		// LOAD ACC WITH MEM LOCATION
+		dskSch.loadi(815);
+		// CALL READ
+		dskSch.syscall(2);
+
+		// READ 8 - 10
+		// DEVICE #
+		dskSch.loadi(2);
+		dskSch.store(820);
+		// PLATTER #
+		dskSch.loadi(3);
+		dskSch.store(821);
+		// WHERE ON PLATTER TO START READ FROM
+		dskSch.loadi(7);
+		dskSch.store(822);
+		// LENGTH ON PLATTER TO READ
+		dskSch.loadi(3);
+		dskSch.store(823);
+		// LOCATION IN MEM TO WRITE TO
+		dskSch.loadi(1506);
+		dskSch.store(824);
+		// LOAD ACC WITH MEM LOCATION
+		dskSch.loadi(820);
+		// CALL READ
+		dskSch.syscall(2);
+
+		// READ 12 - 20
+		// DEVICE #
+		dskSch.loadi(2);
+		dskSch.store(825);
+		// PLATTER #
+		dskSch.loadi(3);
+		dskSch.store(826);
+		// WHERE ON PLATTER TO START READ FROM
+		dskSch.loadi(11);
+		dskSch.store(827);
+		// LENGTH ON PLATTER TO READ
+		dskSch.loadi(9);
+		dskSch.store(828);
+		// LOCATION IN MEM TO WRITE TO
+		dskSch.loadi(1509);
+		dskSch.store(829);
+		// LOAD ACC WITH MEM LOCATION
+		dskSch.loadi(825);
+		// CALL READ
+		dskSch.syscall(2);
+
+		for(int i = 1500; i <= 1517; i++)
+		{
+			dskSch.load(i);
+			dskSch.syscall(1);
+		}
+
+		dskSch.end();
 
 
+		Program DSKSCH = dskSch.build();
+
+		System.out.println(DSKSCH);
+*/
+		//os.schedule(List.of(DSKSCH));
 	}
 
 }
