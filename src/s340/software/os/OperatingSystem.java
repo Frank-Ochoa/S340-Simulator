@@ -46,8 +46,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		this.deviceMethods = new ICallables[Machine.NUM_DEVICES];
 		deviceMethods[Machine.CONSOLE] = new ICallables()
 		{
-			@Override public void startDevice(Machine theMachine, IORequest request)
-					throws MemoryFault
+			@Override public void startDevice(Machine theMachine, IORequest request) throws MemoryFault
 			{
 				DeviceControlRegister controlRegister = theMachine.controlRegisters[Machine.CONSOLE];
 				controlRegister.register[0] = request.getOperations();
@@ -69,8 +68,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		};
 		deviceMethods[Machine.DISK1] = new ICallables()
 		{
-			@Override public void startDevice(Machine theMachine, IORequest request)
-					throws MemoryFault
+			@Override public void startDevice(Machine theMachine, IORequest request) throws MemoryFault
 			{
 				theMachine.memory.setBase(0);
 				theMachine.memory.setLimit(Machine.MEMORY_SIZE);
@@ -126,12 +124,12 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 					// Get the start location of where you will be storing in memory
 					int startStoreLocation = theMachine.memory
 							.load((finishedProcess.getSourceProcess().Acc + finishedProcess.getSourceProcess().BASE)
-									+ 4);
+										  + 4);
 					startStoreLocation += finishedProcess.getSourceProcess().BASE;
 
 					int length = theMachine.memory
 							.load((finishedProcess.getSourceProcess().Acc + finishedProcess.getSourceProcess().BASE)
-									+ 3);
+										  + 3);
 
 					for (int i = 0; i < length; i++)
 					{
@@ -142,8 +140,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 			}
 
-			@Override public IORequest getNextProcess(Machine theMachine, IORequest finishedProcess)
-					throws MemoryFault
+			@Override public IORequest getNextProcess(Machine theMachine, IORequest finishedProcess) throws MemoryFault
 			{
 				theMachine.memory.setBase(0);
 				theMachine.memory.setLimit(Machine.MEMORY_SIZE);
@@ -359,7 +356,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			case Trap.DIV_ZERO:
 				process_table[runningIndex].Status = END;
 				freeSpaces.add(new FreeSpace(process_table[runningIndex].BASE,
-						process_table[runningIndex].BASE + process_table[runningIndex].LIMIT));
+											 process_table[runningIndex].BASE + process_table[runningIndex].LIMIT));
 				System.out.println("Program ended, added a space" + freeSpaces);
 				mergedSpaces();
 				break;
@@ -406,26 +403,28 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			case SystemCall.REQUEST_MORE_MEMORY:
 				// Load into ACC how much more memory program is requesting and pass to sbrk() method
 				sbrk(process_table[runningIndex].Acc);
-				diagnostics();
 				break;
 			case SystemCall.WRITE_TO_CONSOLE:
 				queueOrStartIO(DeviceControllerOperations.WRITE, Machine.CONSOLE);
 				chooseAndJumpNextProcess();
+				diagnostics();
 				break;
 			case SystemCall.READ_FROM_DISK:
 				queueOrStartIO(DeviceControllerOperations.READ,
-						this.machine.memory.load(process_table[runningIndex].Acc));
+							   this.machine.memory.load(process_table[runningIndex].Acc));
 				chooseAndJumpNextProcess();
 				break;
 			case SystemCall.WRITE_TO_DISK:
 				queueOrStartIO(DeviceControllerOperations.WRITE,
-						this.machine.memory.load(process_table[runningIndex].Acc));
+							   this.machine.memory.load(process_table[runningIndex].Acc));
 				chooseAndJumpNextProcess();
 				break;
 			default:
 				System.err.println("UNHANDLED SYSCALL " + callNumber);
 				System.exit(1);
 		}
+
+		diagnostics();
 
 		loadRegisters(process_table[runningIndex]);
 	}
@@ -465,12 +464,12 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		// If queue is not empty, start the next IO
 		if (!waitQueues[deviceNumber].isEmpty())
 		{
-			IORequest nextRequest = deviceMethods[deviceNumber]
-					.getNextProcess(this.machine, finishedProcess);
+			IORequest nextRequest = deviceMethods[deviceNumber].getNextProcess(this.machine, finishedProcess);
 
 			deviceMethods[deviceNumber].startDevice(this.machine, nextRequest);
 		}
 
+		//diagnostics();
 		// Restore registers and jump back to running process
 		loadRegisters(process_table[runningIndex]);
 	}
@@ -711,7 +710,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				== Machine.MEMORY_SIZE)
 		{
 			newFreeSpaces.add(new FreeSpace(blockList.get(index).LIMIT + blockList.get(index).BASE,
-					blockList.get(index + 1).BASE));
+											blockList.get(index + 1).BASE));
 		}
 		else
 		{
@@ -799,7 +798,33 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			s.append(x).append("\n");
 		}
 
-		s.append("\n").append("END OF DIAGNOSTIC").append("\n");
+		for(int i = 0; i < Machine.NUM_DEVICES; i++)
+		{
+			switch(i)
+			{
+				case 0:
+					s.append("\n").append("KEYBOARD WAIT QUEUE: ");
+					break;
+				case 1:
+					s.append("\n").append("CONSOLE WAIT QUEUE: ");
+					break;
+				case 2:
+					s.append("\n").append("DISK ONE WAIT QUEUE: ");
+					break;
+				case 3:
+					s.append("\n").append("DISK TWO WAIT QUEUE: ");
+					break;
+				default:
+					System.out.println("DEVICE WAIT QUEUE NOT FOUND");
+			}
+
+			for(IORequest x : waitQueues[i])
+			{
+				s.append(x);
+			}
+		}
+
+		s.append("\n").append("\n").append("END OF DIAGNOSTIC").append("\n");
 		s.append("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~").append("\n");
 
 		System.out.print(s);
