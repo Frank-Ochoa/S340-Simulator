@@ -61,6 +61,11 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 			}
 
+			@Override public IORequest getNextProcess(Machine theMachine, IORequest finishedProcess, int deviceNumber)
+			{
+				return waitQueues[deviceNumber].peek();
+			}
+
 		};
 		deviceMethods[Machine.DISK1] = new ICallables()
 		{
@@ -137,6 +142,53 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 				}
 
+			}
+
+			@Override public IORequest getNextProcess(Machine theMachine, IORequest finishedProcess, int deviceNumber)
+					throws MemoryFault
+			{
+				theMachine.memory.setBase(0);
+				theMachine.memory.setLimit(Machine.MEMORY_SIZE);
+
+				int storedLocation =
+						(finishedProcess.getSourceProcess().Acc) + (finishedProcess.getSourceProcess().BASE);
+				int start = theMachine.memory.load(storedLocation + 2);
+				int length = theMachine.memory.load(storedLocation + 3);
+				int headLocation = start + length;
+
+				IORequest chosenRequest = null;
+
+				int min = Integer.MAX_VALUE;
+				for (IORequest nextRequest : waitQueues[Machine.DISK1])
+				{
+					int nextStoredLocation =
+							(nextRequest.getSourceProcess().Acc) + (nextRequest.getSourceProcess().BASE);
+					int nextHeadLocation = theMachine.memory.load(nextStoredLocation + 2);
+
+					if (min > Math.abs(nextHeadLocation - headLocation))
+					{
+						min = Math.abs(nextHeadLocation - headLocation);
+						chosenRequest = nextRequest;
+					}
+
+				}
+
+				// Remove from queue and put it back on the head
+				// Scan the Q for the chosenRequest, remove it, then add it back to the head of the Q
+				Iterator<IORequest> it = waitQueues[deviceNumber].iterator();
+				while (it.hasNext())
+				{
+					IORequest request = it.next();
+
+					if (it.next().equals(chosenRequest))
+					{
+						it.remove();
+						waitQueues[deviceNumber].addFirst(request);
+						break;
+					}
+				}
+
+				return chosenRequest;
 			}
 
 		};
@@ -397,7 +449,6 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			return;
 		}
 		//  end of code to leave
-
 		// Need to update head in here?
 
 		// Clear ICR
@@ -416,59 +467,14 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		// If queue is not empty, start the next IO
 		if (!waitQueues[deviceNumber].isEmpty())
 		{
-			// Only do below if the device is a disk
-			if(deviceNumber == Machine.DISK1 || deviceNumber == Machine.DISK2)
-			{
-				this.machine.memory.setBase(0);
-				this.machine.memory.setLimit(Machine.MEMORY_SIZE);
+			IORequest nextRequest = deviceMethods[deviceNumber]
+					.getNextProcess(this.machine, finishedProcess, deviceNumber);
 
-				int storedLocation = (finishedProcess.getSourceProcess().Acc) + (finishedProcess.getSourceProcess().BASE);
-				int start = this.machine.memory.load(storedLocation + 2);
-				int length = this.machine.memory.load(storedLocation + 3);
-				int headLocation = start + length;
-
-				IORequest chosenRequest = null;
-
-				int min = Integer.MAX_VALUE;
-				for (IORequest nextRequest : waitQueues[deviceNumber])
-				{
-					int nextStoredLocation = (nextRequest.getSourceProcess().Acc) + (nextRequest.getSourceProcess().BASE);
-					int nextHeadLocation = this.machine.memory.load(nextStoredLocation + 2);
-
-					if (min > Math.abs(nextHeadLocation - headLocation))
-					{
-						min = Math.abs(nextHeadLocation - headLocation);
-						chosenRequest = nextRequest;
-					}
-
-				}
-
-				// Remove from queue and put it back on the head
-				// Scan the Q for the chosenRequest, remove it, then add it back to the head of the Q
-				Iterator<IORequest> it = waitQueues[deviceNumber].iterator();
-				while (it.hasNext())
-				{
-					IORequest request = it.next();
-
-					if (it.next().equals(chosenRequest))
-					{
-						it.remove();
-						waitQueues[deviceNumber].addFirst(request);
-						break;
-					}
-				}
-
-				deviceMethods[deviceNumber].startDevice(this.machine, deviceNumber, chosenRequest);
-			}
-			else
-			{
-				deviceMethods[deviceNumber].startDevice(this.machine, deviceNumber, waitQueues[deviceNumber].peek());
-			}
-
-			// Restore registers and jump back to running process
-			loadRegisters(process_table[runningIndex]);
-
+			deviceMethods[deviceNumber].startDevice(this.machine, deviceNumber, nextRequest);
 		}
+
+		// Restore registers and jump back to running process
+		loadRegisters(process_table[runningIndex]);
 	}
 
 	private int allocateFreeSpace(int size)
