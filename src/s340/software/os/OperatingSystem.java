@@ -46,10 +46,10 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		this.deviceMethods = new ICallables[Machine.NUM_DEVICES];
 		deviceMethods[Machine.CONSOLE] = new ICallables()
 		{
-			@Override public void startDevice(Machine theMachine, int deviceNumber, IORequest request)
+			@Override public void startDevice(Machine theMachine, IORequest request)
 					throws MemoryFault
 			{
-				DeviceControlRegister controlRegister = theMachine.controlRegisters[deviceNumber];
+				DeviceControlRegister controlRegister = theMachine.controlRegisters[Machine.CONSOLE];
 				controlRegister.register[0] = request.getOperations();
 				controlRegister.register[1] = request.getSourceProcess().Acc;
 				controlRegister.latch();
@@ -61,15 +61,15 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 			}
 
-			@Override public IORequest getNextProcess(Machine theMachine, IORequest finishedProcess, int deviceNumber)
+			@Override public IORequest getNextProcess(Machine theMachine, IORequest finishedProcess)
 			{
-				return waitQueues[deviceNumber].peek();
+				return waitQueues[Machine.CONSOLE].peek();
 			}
 
 		};
 		deviceMethods[Machine.DISK1] = new ICallables()
 		{
-			@Override public void startDevice(Machine theMachine, int deviceNumber, IORequest request)
+			@Override public void startDevice(Machine theMachine, IORequest request)
 					throws MemoryFault
 			{
 				theMachine.memory.setBase(0);
@@ -105,7 +105,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 					for (int i = startLoadLocation; i < startLoadLocation + length; i++)
 					{
 						int instruction = theMachine.memory.load(i);
-						theMachine.devices[deviceNumber].buffer[address++] = instruction;
+						theMachine.devices[Machine.DISK1].buffer[address++] = instruction;
 					}
 
 					//System.out.println(Arrays.toString(theMachine.devices[deviceNumber].buffer));
@@ -129,22 +129,20 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 									+ 4);
 					startStoreLocation += finishedProcess.getSourceProcess().BASE;
 
-					int deviceNumber = theMachine.memory
-							.load(finishedProcess.getSourceProcess().Acc + finishedProcess.getSourceProcess().BASE);
 					int length = theMachine.memory
 							.load((finishedProcess.getSourceProcess().Acc + finishedProcess.getSourceProcess().BASE)
 									+ 3);
 
 					for (int i = 0; i < length; i++)
 					{
-						theMachine.memory.store(startStoreLocation++, theMachine.devices[deviceNumber].buffer[i]);
+						theMachine.memory.store(startStoreLocation++, theMachine.devices[Machine.DISK1].buffer[i]);
 					}
 
 				}
 
 			}
 
-			@Override public IORequest getNextProcess(Machine theMachine, IORequest finishedProcess, int deviceNumber)
+			@Override public IORequest getNextProcess(Machine theMachine, IORequest finishedProcess)
 					throws MemoryFault
 			{
 				theMachine.memory.setBase(0);
@@ -175,7 +173,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 				// Remove from queue and put it back on the head
 				// Scan the Q for the chosenRequest, remove it, then add it back to the head of the Q
-				Iterator<IORequest> it = waitQueues[deviceNumber].iterator();
+				Iterator<IORequest> it = waitQueues[Machine.DISK1].iterator();
 				while (it.hasNext())
 				{
 					IORequest request = it.next();
@@ -183,7 +181,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 					if (it.next().equals(chosenRequest))
 					{
 						it.remove();
-						waitQueues[deviceNumber].addFirst(request);
+						waitQueues[Machine.DISK1].addFirst(request);
 						break;
 					}
 				}
@@ -468,9 +466,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		if (!waitQueues[deviceNumber].isEmpty())
 		{
 			IORequest nextRequest = deviceMethods[deviceNumber]
-					.getNextProcess(this.machine, finishedProcess, deviceNumber);
+					.getNextProcess(this.machine, finishedProcess);
 
-			deviceMethods[deviceNumber].startDevice(this.machine, deviceNumber, nextRequest);
+			deviceMethods[deviceNumber].startDevice(this.machine, nextRequest);
 		}
 
 		// Restore registers and jump back to running process
@@ -823,7 +821,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 		if (waitQueues[deviceNumber].size() == 1)
 		{
-			deviceMethods[deviceNumber].startDevice(this.machine, deviceNumber, waitQueues[deviceNumber].peek());
+			deviceMethods[deviceNumber].startDevice(this.machine, waitQueues[deviceNumber].peek());
 		}
 
 	}
