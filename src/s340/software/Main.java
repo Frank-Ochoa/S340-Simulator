@@ -725,66 +725,24 @@ public class Main
 		list2.add(programCreater(0, 1, 1));
 		list2.add(programCreater(0, 1, 1));
 
-		os.schedule(list2);
+		//os.schedule(list2);
 
 		// THUS the below satisfies: 5) Cause Starvation
 
-		ProgramBuilder greedy = new ProgramBuilder();
-		greedy.size(100);
-		greedy.loadi(777);
-		greedy.store(50);
+		LinkedList<Program> list3 = new LinkedList<>();
+		list3.add(programCreater(0, 1, 3));
+		list3.add(programCreater(3, 1, 3));
+		list3.add(programCreater(5, 1, 3));
+		list3.add(programCreater(7, 1, 3));
+		list3.add(programCreater(90, 1, 3));
+		list3.add(programCreater(9, 1, 3));
+		list3.add(programCreater(11, 1, 3));
+		list3.add(programCreater(13, 1, 3));
+		list3.add(programCreater(15, 1, 3));
 
-		// Device #
-		greedy.loadi(2);
-		greedy.store(28);
-		// Platter #
-		greedy.loadi(1);
-		greedy.store(29);
-		// Start on platter to write to
-		greedy.loadi(0);
-		greedy.store(30);
-		// Length on platter to write
-		greedy.loadi(1);
-		greedy.store(31);
-		// Mem in location to write from
-		greedy.loadi(50);
-		greedy.store(32);
-		// Load Acc with mem address
-		greedy.loadi(28);
-		// Call DISK WRITE
-		greedy.syscall(3);
-
-
-		ProgramBuilder starveMe = new ProgramBuilder();
-		starveMe.size(100);
-
-		// Device #
-		starveMe.loadi(2);
-		starveMe.store(33);
-		// Platter #
-		starveMe.loadi(1);
-		starveMe.store(34);
-		// Start on platter to write to
-		starveMe.loadi(2);
-		starveMe.store(35);
-		// Length on platter to write
-		starveMe.loadi(1);
-		starveMe.store(36);
-		// Mem in location to write from
-		starveMe.loadi(50);
-		starveMe.store(37);
-		// Load Acc with mem address
-		starveMe.loadi(33);
-		// Call DISK WRITE
-		starveMe.syscall(3);
-
-		starveMe.end();
-
-		Program STARVEME = starveMe.build();
-		//System.out.println(STARVEME);
+		os.schedule(list3);
 
 		// Thus the below satisfies: 3) Do a large read/write that requires more than one disk read/write
-
 		ProgramBuilder tooBig = new ProgramBuilder();
 		tooBig.size(4000);
 
