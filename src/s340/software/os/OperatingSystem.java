@@ -292,7 +292,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			// 0 - limit now no longer free
 			freeSpaces.get(iFS).setSTART(x.BASE + x.LIMIT);
 			freeSpaces.get(iFS).setLENGTH(freeSpaces.get(iFS).getLENGTH() - x.LIMIT);
-			diagnostics();
+			//diagnostics();
 		}
 
 		// leave this as the last line
@@ -791,7 +791,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		StringBuilder s = new StringBuilder();
 		s.append("\n").append("------------------------------------").append("\n");
 		s.append("START OF DIAGNOSTIC").append("\n\n");
-		for (int i = 0; i < process_table.length; i++)
+
+		// This is the processes, commented out for readability sake of this project
+		/*for (int i = 0; i < process_table.length; i++)
 		{
 			if (process_table[i] != null && process_table[i].Status != END)
 			{
@@ -800,7 +802,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				s.append("Limit: ").append(process_table[i].LIMIT).append("\n\n");
 			}
 
-		}
+		}*/
 
 		for (FreeSpace x : freeSpaces)
 		{
