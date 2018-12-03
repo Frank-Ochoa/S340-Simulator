@@ -48,9 +48,11 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		{
 			@Override public void startDevice(Machine theMachine, IORequest request) throws MemoryFault
 			{
+				// Set up registers
 				DeviceControlRegister controlRegister = theMachine.controlRegisters[Machine.CONSOLE];
 				controlRegister.register[0] = request.getOperations();
 				controlRegister.register[1] = request.getSourceProcess().Acc;
+				// Start the I/O
 				controlRegister.latch();
 			}
 
@@ -73,12 +75,8 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				theMachine.memory.setBase(0);
 				theMachine.memory.setLimit(Machine.MEMORY_SIZE);
 
-				// Pass in IORequest to start device method
-				// Need to use generic device number
-				// Possibly replace this with the SFTS algoritm, b/c this is just what is selecting the next thing to do
-				// and instead of first come first serve do the SFTS
-				//IORequest request = waitQueues[deviceNumber].peek();
-
+				// I could have passed in the deviceNumber to this method, but figured since it's explicitly assigned
+				// to Disk 1 that it would make more sense just to use Machine.Disk1 as the number
 				DeviceControlRegister controlRegister = theMachine.controlRegisters[Machine.DISK1];
 				controlRegister.register[0] = request.getOperations();
 
@@ -93,13 +91,16 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				int length = theMachine.memory.load(storedLocation++);
 				int startLoadLocation = theMachine.memory.load(storedLocation) + (request.getSourceProcess().BASE);
 
+				// Set up registers
 				controlRegister.register[1] = platterSize;
 				controlRegister.register[2] = start;
 				controlRegister.register[3] = length;
 
+				// If Operation is Write
 				if (request.getOperations() == DeviceControllerOperations.WRITE)
 				{
 					int address = 0;
+					// Load appropriate instruction from memory and story in Disk bufer
 					for (int i = startLoadLocation; i < startLoadLocation + length; i++)
 					{
 						int instruction = theMachine.memory.load(i);
@@ -110,12 +111,14 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 				}
 
+				// Start the I/O
 				controlRegister.latch();
 			}
 
 			@Override public void interruptPostProcessing(Machine theMachine, IORequest finishedProcess)
 					throws MemoryFault
 			{
+				// If Operation is Read
 				if (finishedProcess.getOperations() == DeviceControllerOperations.READ)
 				{
 					theMachine.memory.setBase(0);
@@ -131,6 +134,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 							.load((finishedProcess.getSourceProcess().Acc + finishedProcess.getSourceProcess().BASE)
 									+ 3);
 
+					// Store the instructions located in the Disk buffer to the appropriate locations in memory
 					for (int i = 0; i < length; i++)
 					{
 						theMachine.memory.store(startStoreLocation++, theMachine.devices[Machine.DISK1].buffer[i]);
@@ -154,6 +158,8 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				IORequest chosenRequest = null;
 
 				int min = Integer.MAX_VALUE;
+
+				// Find the next head that has the smallest distance from the current head
 				for (IORequest nextRequest : waitQueues[Machine.DISK1])
 				{
 					int nextStoredLocation =
@@ -168,8 +174,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 				}
 
-				// Remove from queue and put it back on the head
-				// Scan the Q for the chosenRequest, remove it, then add it back to the head of the Q
+				// Remove the chosenRequest from the Q, then add it back to the head of the Q
 				waitQueues[Machine.DISK1].remove(chosenRequest);
 				waitQueues[Machine.DISK1].addFirst(chosenRequest);
 
