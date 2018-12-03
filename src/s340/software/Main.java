@@ -1,19 +1,78 @@
 package s340.software;
 
 import s340.hardware.Machine;
-import s340.hardware.MemoryController;
 import s340.software.os.OperatingSystem;
 import s340.software.os.Program;
 import s340.software.os.ProgramBuilder;
 
 import java.util.LinkedList;
-import java.util.List;
 
 /**
  * Project 1 by : Frank Ochoa, Aidan Chisum, Alec Bennett
  */
 public class Main
 {
+	public static Program programWrite(int head)
+	{
+		ProgramBuilder write = new ProgramBuilder();
+		write.size(1000);
+
+		// Write 1 - 20
+		// Device #
+		write.loadi(2);
+		write.store(800);
+		// Platter #
+		write.loadi(1);
+		write.store(801);
+		// Start on platter to write to
+		write.loadi(head);
+		write.store(802);
+		// Length on platter to write
+		write.loadi(1);
+		write.store(803);
+		// Mem in location to write from
+		write.loadi(1001);
+		write.store(804);
+		// Load Acc with mem address
+		write.loadi(800);
+		// Call DISK WRITE
+		write.syscall(3);
+
+		write.end();
+
+		return write.build();
+	}
+
+	public static Program programRead(int head)
+	{
+		ProgramBuilder read = new ProgramBuilder();
+		read.size(1000);
+
+		// Write 1 - 20
+		// Device #
+		read.loadi(2);
+		read.store(800);
+		// Platter #
+		read.loadi(1);
+		read.store(801);
+		// Start on platter to write to
+		read.loadi(head);
+		read.store(802);
+		// Length on platter to write
+		read.loadi(1);
+		read.store(803);
+		// Mem in location to write from
+		read.loadi(1001);
+		read.store(804);
+		// Load Acc with mem address
+		read.loadi(800);
+		// Call DISK WRITE
+		read.syscall(2);
+
+		read.end();
+
+		return read.build();
+	}
 
 	public static void main(String[] args) throws Exception
 	{
@@ -341,6 +400,7 @@ public class Main
 
 		/* GROUP PROJECT 3 START */
 
+		// P1-P3 writes i into locations 40-44 and then prints locations 40-44
 		ProgramBuilder p1 = new ProgramBuilder();
 		p1.size(12);
 		p1.loadi(1);
@@ -407,12 +467,12 @@ public class Main
 
 		//System.out.println(P1);
 
-
 		//os.schedule(List.of(P1, P2, P3));
 
+		// TESTD1 does the storing of 1-20, writing it, reading it, and then printing it
 		ProgramBuilder testD1 = new ProgramBuilder();
 		testD1.size(2000);
-		for(int i = 1; i <= 20; i++)
+		for (int i = 1; i <= 20; i++)
 		{
 			testD1.loadi(i);
 			testD1.store(245 + i);
@@ -458,25 +518,24 @@ public class Main
 		// CALL READ
 		testD1.syscall(2);
 		// OUT WITH WRITE CONSOLE
-		for(int b = 301; b <= 320; b++)
+		for (int b = 301; b <= 320; b++)
 		{
 			testD1.load(b);
 			testD1.syscall(1);
 		}
 		testD1.end();
 
-
 		Program TESTD1 = testD1.build();
-
 
 		//System.out.println(TESTD1);
 
 		//os.schedule(List.of(TESTD1));
 
+		// DSKSCH program schedules multiple writes/reads and interleaves console writes between them
 		ProgramBuilder dskSch = new ProgramBuilder();
 		dskSch.size(2000);
 
-		for(int i = 1; i <= 100; i++)
+		for (int i = 1; i <= 100; i++)
 		{
 			dskSch.loadi(i);
 			dskSch.store(1000 + i);
@@ -503,6 +562,10 @@ public class Main
 		// Call DISK WRITE
 		dskSch.syscall(3);
 
+		// Interleave Console Write
+		dskSch.loadi(777);
+		dskSch.syscall(1);
+
 		// Write 51 - 100
 		// Device #
 		dskSch.loadi(2);
@@ -524,6 +587,10 @@ public class Main
 		// Call DISK WRITE
 		dskSch.syscall(3);
 
+		// Interleave Console Write
+		dskSch.loadi(777);
+		dskSch.syscall(1);
+
 		// READ 3 - 6
 		// DEVICE #
 		dskSch.loadi(2);
@@ -541,9 +608,13 @@ public class Main
 		dskSch.loadi(1500);
 		dskSch.store(814);
 		// LOAD ACC WITH MEM LOCATION
-		dskSch.loadi(810);
+		//dskSch.loadi(810);
 		// CALL READ
-		dskSch.syscall(2);
+		//dskSch.syscall(2);
+
+		// Interleave Console Write
+		dskSch.loadi(777);
+		dskSch.syscall(1);
 
 		// READ 1 - 2
 		// DEVICE #
@@ -562,9 +633,13 @@ public class Main
 		dskSch.loadi(1504);
 		dskSch.store(819);
 		// LOAD ACC WITH MEM LOCATION
-		dskSch.loadi(815);
+		//dskSch.loadi(815);
 		// CALL READ
-		dskSch.syscall(2);
+		//dskSch.syscall(2);
+
+		// Interleave Console Write
+		dskSch.loadi(777);
+		dskSch.syscall(1);
 
 		// READ 8 - 10
 		// DEVICE #
@@ -583,9 +658,13 @@ public class Main
 		dskSch.loadi(1506);
 		dskSch.store(824);
 		// LOAD ACC WITH MEM LOCATION
-		dskSch.loadi(820);
+		//dskSch.loadi(820);
 		// CALL READ
-		dskSch.syscall(2);
+		//dskSch.syscall(2);
+
+		// Interleave Console Write
+		dskSch.loadi(777);
+		dskSch.syscall(1);
 
 		// READ 12 - 20
 		// DEVICE #
@@ -604,11 +683,20 @@ public class Main
 		dskSch.loadi(1509);
 		dskSch.store(829);
 		// LOAD ACC WITH MEM LOCATION
-		dskSch.loadi(825);
+		//dskSch.loadi(825);
 		// CALL READ
+		//dskSch.syscall(2);
+
+		dskSch.loadi(810);
+		dskSch.syscall(2);
+		dskSch.loadi(815);
+		dskSch.syscall(2);
+		dskSch.loadi(820);
+		dskSch.syscall(2);
+		dskSch.loadi(825);
 		dskSch.syscall(2);
 
-		for(int i = 1500; i <= 1517; i++)
+		for (int i = 1500; i <= 1517; i++)
 		{
 			dskSch.load(i);
 			dskSch.syscall(1);
@@ -616,11 +704,20 @@ public class Main
 
 		dskSch.end();
 
-
 		Program DSKSCH = dskSch.build();
 
-		System.out.println(DSKSCH);
-		os.schedule(List.of(DSKSCH));
+		//System.out.println(DSKSCH);
+		//os.schedule(List.of(DSKSCH));
+
+		LinkedList<Program> list = new LinkedList<>();
+
+		// Passed in are the heads, each program writes 1
+		list.add(programWrite(0));
+		list.add(programWrite(20));
+		list.add(programWrite(4));
+		list.add(programWrite(2));
+
+		os.schedule(list);
 	}
 
 }

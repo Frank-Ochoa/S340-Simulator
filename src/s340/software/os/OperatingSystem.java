@@ -124,12 +124,12 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 					// Get the start location of where you will be storing in memory
 					int startStoreLocation = theMachine.memory
 							.load((finishedProcess.getSourceProcess().Acc + finishedProcess.getSourceProcess().BASE)
-										  + 4);
+									+ 4);
 					startStoreLocation += finishedProcess.getSourceProcess().BASE;
 
 					int length = theMachine.memory
 							.load((finishedProcess.getSourceProcess().Acc + finishedProcess.getSourceProcess().BASE)
-										  + 3);
+									+ 3);
 
 					for (int i = 0; i < length; i++)
 					{
@@ -170,18 +170,8 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 				// Remove from queue and put it back on the head
 				// Scan the Q for the chosenRequest, remove it, then add it back to the head of the Q
-				Iterator<IORequest> it = waitQueues[Machine.DISK1].iterator();
-				while (it.hasNext())
-				{
-					IORequest request = it.next();
-
-					if (it.next().equals(chosenRequest))
-					{
-						it.remove();
-						waitQueues[Machine.DISK1].addFirst(request);
-						break;
-					}
-				}
+				waitQueues[Machine.DISK1].remove(chosenRequest);
+				waitQueues[Machine.DISK1].addFirst(chosenRequest);
 
 				return chosenRequest;
 			}
@@ -356,7 +346,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			case Trap.DIV_ZERO:
 				process_table[runningIndex].Status = END;
 				freeSpaces.add(new FreeSpace(process_table[runningIndex].BASE,
-											 process_table[runningIndex].BASE + process_table[runningIndex].LIMIT));
+						process_table[runningIndex].BASE + process_table[runningIndex].LIMIT));
 				System.out.println("Program ended, added a space" + freeSpaces);
 				mergedSpaces();
 				break;
@@ -410,12 +400,12 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				break;
 			case SystemCall.READ_FROM_DISK:
 				queueOrStartIO(DeviceControllerOperations.READ,
-							   this.machine.memory.load(process_table[runningIndex].Acc));
+						this.machine.memory.load(process_table[runningIndex].Acc));
 				chooseAndJumpNextProcess();
 				break;
 			case SystemCall.WRITE_TO_DISK:
 				queueOrStartIO(DeviceControllerOperations.WRITE,
-							   this.machine.memory.load(process_table[runningIndex].Acc));
+						this.machine.memory.load(process_table[runningIndex].Acc));
 				chooseAndJumpNextProcess();
 				break;
 			default:
@@ -445,7 +435,6 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			return;
 		}
 		//  end of code to leave
-		// Need to update head in here?
 
 		// Clear ICR
 		this.machine.interruptRegisters.register[deviceNumber] = false;
@@ -457,6 +446,11 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		IORequest finishedProcess = waitQueues[deviceNumber].remove();
 		finishedProcess.getSourceProcess().Status = READY;
 
+		// Diagnostics
+		StringBuilder s = new StringBuilder();
+		s.append("\n").append("*****************************************").append("\n")
+				.append("FINISHED PROCESS HAS BASE OF: ").append(finishedProcess.getSourceProcess().BASE).append("\n");
+
 		// Do Post Processing when appropriate
 		deviceMethods[deviceNumber].interruptPostProcessing(this.machine, finishedProcess);
 
@@ -465,12 +459,67 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		{
 			IORequest nextRequest = deviceMethods[deviceNumber].getNextProcess(this.machine, finishedProcess);
 
+			// Additional diagnostics
+			s.append("\n").append("CHOSEN NEXT REQUEST HAS BASE OF: ").append(nextRequest.getSourceProcess().BASE)
+					.append("\n").append("*****************************************").append("\n");
+
 			deviceMethods[deviceNumber].startDevice(this.machine, nextRequest);
 		}
+
+		System.out.println(s);
 
 		diagnostics();
 		// Restore registers and jump back to running process
 		loadRegisters(process_table[runningIndex]);
+	}
+
+	private boolean sbrk(int wantedSpace) throws MemoryFault
+	{
+		ProcessControlBlock process = this.process_table[runningIndex];
+
+		// Attempt to expand in place
+		if (expandInPlace(process, wantedSpace))
+		{
+			System.out.println("Successfully expanded in place");
+			return true;
+		}
+
+		// Attempt to move the program
+		if (moveProgram(process, wantedSpace))
+		{
+			System.out.println("Successfully moved a program");
+			return true;
+		}
+
+		// Else scan list of free spaces looking for adjacent free and merging them together, (Perform merging)
+		// Now check if you can expand in place or move the program with the newly merged free spaces
+		if (mergedSpaces())
+		{
+			if (expandInPlace(process, wantedSpace))
+			{
+				System.out.println("Successfully expanded in place");
+				return true;
+			}
+
+			if (moveProgram(process, wantedSpace))
+			{
+				System.out.println("Successfully moved a program place");
+				return true;
+			}
+		}
+		// Else attempt to perform memory compaction
+		if (memoryCompaction(process, wantedSpace))
+		{
+			return true;
+		}
+		// Else nothing worked, not enough memory available and exit
+		else
+		{
+			System.err.println("Error: Not enough memory availible");
+			System.exit(1);
+		}
+
+		return false;
 	}
 
 	private int allocateFreeSpace(int size)
@@ -709,7 +758,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 				== Machine.MEMORY_SIZE)
 		{
 			newFreeSpaces.add(new FreeSpace(blockList.get(index).LIMIT + blockList.get(index).BASE,
-											blockList.get(index + 1).BASE));
+					blockList.get(index + 1).BASE));
 		}
 		else
 		{
@@ -725,55 +774,6 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 		// Attempt to expand in place
 		return expandInPlace(process, wantedSpace);
-	}
-
-	private boolean sbrk(int wantedSpace) throws MemoryFault
-	{
-		ProcessControlBlock process = this.process_table[runningIndex];
-
-		// Attempt to expand in place
-		if (expandInPlace(process, wantedSpace))
-		{
-			System.out.println("Successfully expanded in place");
-			return true;
-		}
-
-		// Attempt to move the program
-		if (moveProgram(process, wantedSpace))
-		{
-			System.out.println("Successfully moved a program");
-			return true;
-		}
-
-		// Else scan list of free spaces looking for adjacent free and merging them together, (Perform merging)
-		// Now check if you can expand in place or move the program with the newly merged free spaces
-		if (mergedSpaces())
-		{
-			if (expandInPlace(process, wantedSpace))
-			{
-				System.out.println("Successfully expanded in place");
-				return true;
-			}
-
-			if (moveProgram(process, wantedSpace))
-			{
-				System.out.println("Successfully moved a program place");
-				return true;
-			}
-		}
-		// Else attempt to perform memory compaction
-		if (memoryCompaction(process, wantedSpace))
-		{
-			return true;
-		}
-		// Else nothing worked, not enough memory available and exit
-		else
-		{
-			System.err.println("Error: Not enough memory availible");
-			System.exit(1);
-		}
-
-		return false;
 	}
 
 	private void diagnostics()
@@ -797,9 +797,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			s.append(x).append("\n");
 		}
 
-		for(int i = 0; i < Machine.NUM_DEVICES; i++)
+		for (int i = 0; i < Machine.NUM_DEVICES; i++)
 		{
-			switch(i)
+			switch (i)
 			{
 				case 0:
 					s.append("\n").append("KEYBOARD WAIT QUEUE: ");
@@ -817,9 +817,9 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 					System.out.println("DEVICE WAIT QUEUE NOT FOUND");
 			}
 
-			for(IORequest x : waitQueues[i])
+			for (IORequest x : waitQueues[i])
 			{
-				s.append(x);
+				s.append("\n").append(x);
 			}
 		}
 
