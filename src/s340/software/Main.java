@@ -6,73 +6,43 @@ import s340.software.os.Program;
 import s340.software.os.ProgramBuilder;
 
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Project 1 by : Frank Ochoa, Aidan Chisum, Alec Bennett
  */
 public class Main
 {
-	public static Program programWrite(int head)
+	public static Program programCreater(int head, int length, int operation)
 	{
 		ProgramBuilder write = new ProgramBuilder();
-		write.size(1000);
+		write.size(100);
 
-		// Write 1 - 20
 		// Device #
 		write.loadi(2);
-		write.store(800);
+		write.store(30);
 		// Platter #
 		write.loadi(1);
-		write.store(801);
+		write.store(31);
 		// Start on platter to write to
 		write.loadi(head);
-		write.store(802);
+		write.store(32);
 		// Length on platter to write
-		write.loadi(1);
-		write.store(803);
+		write.loadi(length);
+		write.store(33);
 		// Mem in location to write from
-		write.loadi(1001);
-		write.store(804);
+		write.loadi(100);
+		write.store(34);
 		// Load Acc with mem address
-		write.loadi(800);
+		write.loadi(30);
 		// Call DISK WRITE
-		write.syscall(3);
+		write.syscall(operation);
 
 		write.end();
 
 		return write.build();
 	}
 
-	public static Program programRead(int head)
-	{
-		ProgramBuilder read = new ProgramBuilder();
-		read.size(1000);
-
-		// Write 1 - 20
-		// Device #
-		read.loadi(2);
-		read.store(800);
-		// Platter #
-		read.loadi(1);
-		read.store(801);
-		// Start on platter to write to
-		read.loadi(head);
-		read.store(802);
-		// Length on platter to write
-		read.loadi(1);
-		read.store(803);
-		// Mem in location to write from
-		read.loadi(1001);
-		read.store(804);
-		// Load Acc with mem address
-		read.loadi(800);
-		// Call DISK WRITE
-		read.syscall(2);
-
-		read.end();
-
-		return read.build();
-	}
 
 	public static void main(String[] args) throws Exception
 	{
@@ -709,15 +679,217 @@ public class Main
 		//System.out.println(DSKSCH);
 		//os.schedule(List.of(DSKSCH));
 
+		// Passed in are the heads, length to write, and operation (1 is CONSOLE WRITE, 2 is READ FROM DISK
+		// 3 is WRITE TO DISK). Each is of size (Data size + Code size) of 126. Virtual Location 28 is where the 1st
+		// information for the registers is found, thus CONSOLE WRITES will print 28 as that was the last thing loaded
+		// into the Accumulator
+
+		// THUS the below satisfies 1) Cause more than one disk write/read to be scheduled at the same time
+		//							4) Causes disk to scheduling to re-order disk I/O Requests
+
 		LinkedList<Program> list = new LinkedList<>();
 
-		// Passed in are the heads, each program writes 1
-		list.add(programWrite(0));
-		list.add(programWrite(20));
-		list.add(programWrite(4));
-		list.add(programWrite(2));
+		// Disk Write
+		list.add(programCreater(0, 1, 3));
+		// Disk Write
+		list.add(programCreater(20, 1, 3));
+		// Disk Write
+		list.add(programCreater(4, 1, 3));
+		// Disk Write
+		list.add(programCreater(2, 1, 3));
 
-		os.schedule(list);
+
+		//os.schedule(list);
+
+		// THUS the below satisfies 2) Cause more than one console write to occur at the same time
+		//							6) Interleave console writes with disk reads and writes
+
+		LinkedList<Program> list2 = new LinkedList<>();
+
+		// Disk Write
+		list2.add(programCreater(0, 1, 3));
+		// Console Write
+		list2.add(programCreater(0, 1, 1));
+		// Disk Read
+		list2.add(programCreater(20, 1, 2));
+		// Console Write
+		list2.add(programCreater(0, 1, 1));
+		// Disk Write
+		list2.add(programCreater(4, 1, 3));
+		// Disk Read
+		list2.add(programCreater(2, 1, 2));
+		// Console Writes
+		list2.add(programCreater(0, 1, 1));
+		list2.add(programCreater(0, 1, 1));
+		list2.add(programCreater(0, 1, 1));
+		list2.add(programCreater(0, 1, 1));
+		list2.add(programCreater(0, 1, 1));
+
+		os.schedule(list2);
+
+		// THUS the below satisfies: 5) Cause Starvation
+
+		ProgramBuilder greedy = new ProgramBuilder();
+		greedy.size(100);
+		greedy.loadi(777);
+		greedy.store(50);
+
+		// Device #
+		greedy.loadi(2);
+		greedy.store(28);
+		// Platter #
+		greedy.loadi(1);
+		greedy.store(29);
+		// Start on platter to write to
+		greedy.loadi(0);
+		greedy.store(30);
+		// Length on platter to write
+		greedy.loadi(1);
+		greedy.store(31);
+		// Mem in location to write from
+		greedy.loadi(50);
+		greedy.store(32);
+		// Load Acc with mem address
+		greedy.loadi(28);
+		// Call DISK WRITE
+		greedy.syscall(3);
+
+
+		ProgramBuilder starveMe = new ProgramBuilder();
+		starveMe.size(100);
+
+		// Device #
+		starveMe.loadi(2);
+		starveMe.store(33);
+		// Platter #
+		starveMe.loadi(1);
+		starveMe.store(34);
+		// Start on platter to write to
+		starveMe.loadi(2);
+		starveMe.store(35);
+		// Length on platter to write
+		starveMe.loadi(1);
+		starveMe.store(36);
+		// Mem in location to write from
+		starveMe.loadi(50);
+		starveMe.store(37);
+		// Load Acc with mem address
+		starveMe.loadi(33);
+		// Call DISK WRITE
+		starveMe.syscall(3);
+
+		starveMe.end();
+
+		Program STARVEME = starveMe.build();
+		//System.out.println(STARVEME);
+
+		// Thus the below satisfies: 3) Do a large read/write that requires more than one disk read/write
+
+		ProgramBuilder tooBig = new ProgramBuilder();
+		tooBig.size(4000);
+
+		// 200 integers to WRITE and READ
+		for(int i = 0; i < 200; i++)
+		{
+			tooBig.loadi(i);
+			tooBig.store(3000 + i);
+		}
+
+		// WRITE 1st 100, Entire Platter
+		// Device #
+		tooBig.loadi(2);
+		tooBig.store(2000);
+		// Platter #
+		tooBig.loadi(1);
+		tooBig.store(2001);
+		// Start on platter to write to
+		tooBig.loadi(0);
+		tooBig.store(2002);
+		// Length on platter to write
+		tooBig.loadi(100);
+		tooBig.store(2003);
+		// Mem in location to write from
+		tooBig.loadi(3000);
+		tooBig.store(2004);
+		// Load Acc with mem address
+		tooBig.loadi(2000);
+		// Call DISK WRITE
+		tooBig.syscall(3);
+
+		// READ 1st 100, Entire Platter
+		// DEVICE #
+		tooBig.loadi(2);
+		tooBig.store(2005);
+		// PLATTER #
+		tooBig.loadi(1);
+		tooBig.store(2006);
+		// WHERE ON PLATTER TO START READ FROM
+		tooBig.loadi(0);
+		tooBig.store(2007);
+		// LENGTH ON PLATTER TO READ
+		tooBig.loadi(100);
+		tooBig.store(2008);
+		// LOCATION IN MEM TO WRITE TO
+		tooBig.loadi(4000);
+		tooBig.store(2009);
+		// LOAD ACC WITH MEM LOCATION
+		tooBig.loadi(2005);
+		// CALL READ
+		tooBig.syscall(2);
+
+		// WRITE 2nd 100, Entire Platter
+		// Device #
+		tooBig.loadi(2);
+		tooBig.store(2010);
+		// Platter #
+		tooBig.loadi(1);
+		tooBig.store(2011);
+		// Start on platter to write to
+		tooBig.loadi(0);
+		tooBig.store(2012);
+		// Length on platter to write
+		tooBig.loadi(100);
+		tooBig.store(2013);
+		// Mem in location to write from
+		tooBig.loadi(3100);
+		tooBig.store(2014);
+		// Load Acc with mem address
+		tooBig.loadi(2010);
+		// Call DISK WRITE
+		tooBig.syscall(3);
+
+		// READ 2nd 100, Entire Platter
+		// DEVICE #
+		tooBig.loadi(2);
+		tooBig.store(2015);
+		// PLATTER #
+		tooBig.loadi(1);
+		tooBig.store(2016);
+		// WHERE ON PLATTER TO START READ FROM
+		tooBig.loadi(0);
+		tooBig.store(2017);
+		// LENGTH ON PLATTER TO READ
+		tooBig.loadi(100);
+		tooBig.store(2018);
+		// LOCATION IN MEM TO WRITE TO
+		tooBig.loadi(4100);
+		tooBig.store(2019);
+		// LOAD ACC WITH MEM LOCATION
+		tooBig.loadi(2015);
+		// CALL READ
+		tooBig.syscall(2);
+
+		// PRINT WITH CONSOLE WRITE
+		for(int i = 4000; i <= 4199; i++)
+		{
+			tooBig.load(i);
+			tooBig.syscall(1);
+		}
+		tooBig.end();
+
+		Program TOOBIG = tooBig.build();
+		//os.schedule(List.of(TOOBIG));
+
 	}
 
 }

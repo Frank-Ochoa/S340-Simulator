@@ -465,6 +465,11 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 			deviceMethods[deviceNumber].startDevice(this.machine, nextRequest);
 		}
+		// Else is for cleanliness of diagnostic
+		else
+		{
+			s.append("*****************************************").append("\n");
+		}
 
 		System.out.println(s);
 
@@ -779,7 +784,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 	private void diagnostics()
 	{
 		StringBuilder s = new StringBuilder();
-		s.append("------------------------------------").append("\n");
+		s.append("\n").append("------------------------------------").append("\n");
 		s.append("START OF DIAGNOSTIC").append("\n\n");
 		for (int i = 0; i < process_table.length; i++)
 		{
@@ -824,7 +829,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		}
 
 		s.append("\n").append("\n").append("END OF DIAGNOSTIC").append("\n");
-		s.append("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~").append("\n");
+		s.append("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~").append("\n").append("\n");
 
 		System.out.print(s);
 
