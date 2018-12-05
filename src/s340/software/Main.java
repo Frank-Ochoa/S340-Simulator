@@ -505,7 +505,7 @@ public class Main
 		// into the Accumulator
 
 		// THUS the below satisfies 1) Cause more than one disk write/read to be scheduled at the same time
-		//							4) Causes disk to scheduling to re-order disk I/O Requests
+		//							3) Causes disk to scheduling to re-order disk I/O Requests
 
 		LinkedList<Program> list = new LinkedList<>();
 
@@ -522,7 +522,7 @@ public class Main
 		//os.schedule(list);
 
 		// THUS the below satisfies 2) Cause more than one console write to occur at the same time
-		//							6) Interleave console writes with disk reads and writes
+		//							5) Interleave console writes with disk reads and writes
 
 		LinkedList<Program> list2 = new LinkedList<>();
 
@@ -541,7 +541,7 @@ public class Main
 
 		//os.schedule(list2);
 
-		// THUS the below satisfies: 5) Cause Starvation
+		// THUS the below satisfies: 4) Cause Starvation
 
 		LinkedList<Program> list3 = new LinkedList<>();
 		list3.add(programCreater(0, 1, 3));
@@ -554,7 +554,7 @@ public class Main
 		list3.add(programCreater(13, 1, 3));
 		list3.add(programCreater(15, 1, 3));
 
-		//os.schedule(list3);
+		os.schedule(list3);
 
 	}
 
