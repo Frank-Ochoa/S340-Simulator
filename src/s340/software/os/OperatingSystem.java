@@ -292,6 +292,8 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 			// 0 - limit now no longer free
 			freeSpaces.get(iFS).setSTART(x.BASE + x.LIMIT);
 			freeSpaces.get(iFS).setLENGTH(freeSpaces.get(iFS).getLENGTH() - x.LIMIT);
+
+			// Commented out diagnostic all here for readability sake of Project 3
 			//diagnostics();
 		}
 
@@ -792,7 +794,7 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 		s.append("\n").append("------------------------------------").append("\n");
 		s.append("START OF DIAGNOSTIC").append("\n\n");
 
-		// This is the processes, commented out for readability sake of this project
+		// These are the processes, commented out for readability sake of Project 3
 		/*for (int i = 0; i < process_table.length; i++)
 		{
 			if (process_table[i] != null && process_table[i].Status != END)
@@ -851,10 +853,14 @@ public class OperatingSystem implements IInterruptHandler, ISystemCallHandler, I
 
 	private void queueOrStartIO(int operation, int deviceNumber) throws MemoryFault
 	{
+		// Create a new IORequest with the operation and process
 		IORequest request = new IORequest(operation, process_table[runningIndex]);
+		// Add the IORequest to the appropriate Queue
 		waitQueues[deviceNumber].add(request);
+		// Set the process to waiting
 		request.getSourceProcess().Status = WAITING;
 
+		// If appropriate waitQueue is empty, start the I/O
 		if (waitQueues[deviceNumber].size() == 1)
 		{
 			deviceMethods[deviceNumber].startDevice(this.machine, waitQueues[deviceNumber].peek());

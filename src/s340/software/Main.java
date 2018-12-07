@@ -501,7 +501,7 @@ public class Main
 
 		// Passed in are the heads, length to write, and operation (1 is CONSOLE WRITE, 2 is READ FROM DISK
 		// 3 is WRITE TO DISK). Each is of size (Data size + Code size) of 126. Virtual Location 30 is where the 1st
-		// information for the registers is found, thus CONSOLE WRITES will print 28 as that was the last thing loaded
+		// information for the registers is found, thus CONSOLE WRITES will print 30 as that was the last thing loaded
 		// into the Accumulator
 
 		// THUS the below satisfies 1) Cause more than one disk write/read to be scheduled at the same time
@@ -554,7 +554,7 @@ public class Main
 		list3.add(programCreater(13, 1, 3));
 		list3.add(programCreater(15, 1, 3));
 
-		os.schedule(list3);
+		//os.schedule(list3);
 
 	}
 
